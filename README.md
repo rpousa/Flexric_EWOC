@@ -292,7 +292,15 @@ Recognizing the critical role of the ns-O-RAN simulator, the Orange Innovation E
 
 ![alt text](fig/6.png)
 
-The simulator has been updated and enhanced to support E2AP v1.01, E2SM-KPM v3.00, and E2SM-RC v1.03. This framework has been tested with the `/build/examples/xApp/c/kpm_rc/xapp_kpm_rc` xApp with different scenarios.
+The simulator has been updated and enhanced to support E2AP v1.01, KPM v3.00, and RC v1.03. 
+This framework has been tested with the **kpm-rc** and **Eenergy Saving under Cell utilization** xApps.
+
+#### 5.4.1 Zero-touch operation: Energy Saving (ES) under Cell utilization xApp Overview
+
+The Orange Innovation Egypt team has developed an Energy Saving (ES) under cell utilization xApp. This xApp continuously monitors the Physical Resource Block (PRB) utilization of each cell to make informed decisions about network resource management while ensuring Quality of Service (QoS) for the scenario.
+
+* [Testbed tutorial](https://github.com/Orange-OpenSource/ns-O-RAN-flexric/?tab=readme-ov-file#43-energy-saving-under-cell-utilization-es-xapp-operation)
+* [Testbed demo](https://www.youtube.com/watch?v=p5MOp3b8Nm8) - the demo walks you through the process from monitoring PRB usage to initiating handovers and deactivating underutilized cells, and ensuring QoS observability throughout the scenario.
 
 ## 5.5 (opt.) Synchronize clock
 Before running the various components (RAN/nearRT-RIC/xApps), you probably want to align the machines' clock. For this aim, you can use `ptp4l` in all the machines
