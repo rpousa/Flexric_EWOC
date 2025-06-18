@@ -8,6 +8,8 @@
 typedef struct {
   // Option 1: overwrite the default values at run time
   char ip[FR_IP_ADDRESS_LEN];
+  char db_dir[FR_CONF_FILE_LEN];
+  char db_name[FR_CONF_FILE_LEN];
 
   // Option 2: read from file
   char conf_file[FR_CONF_FILE_LEN];
