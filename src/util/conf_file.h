@@ -2,11 +2,12 @@
 #define FLEXRIC_CONFIGURATION_FILE_H 
 
 #include <stdint.h>
+#define FR_IP_ADDRESS_LEN 16
 #define FR_CONF_FILE_LEN 128
 
 typedef struct {
-  // Option 1: directly pass IP argument 
-  const char *ip;
+  // Option 1: overwrite the default values at run time
+  char ip[FR_IP_ADDRESS_LEN];
 
   // Option 2: read from file
   char conf_file[FR_CONF_FILE_LEN];
