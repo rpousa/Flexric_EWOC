@@ -1,14 +1,20 @@
 # FlexRIC Documentation
 
 This repository contains [O-RAN Alliance](https://www.o-ran.org/) compliant E2 Node Agent emulators, a nearRT-RIC, and xApps written in C/C++ and Python.
+
 It implements various service models (O-RAN standard E2SM-KPM v2.01/v2.03/v3.00 and E2SM-RC v1.03, as well as customized NG/GTP, PDCP, RLC, MAC, SC and TC). 
+
 Depending on the service model, different encoding schemes have been developed (ASN.1, flatbuffer, plain). 
+
 The indication data received in the xApp uses as persistence mechanism an sqlite3 database for enabling offline processing applications (e.g., ML/AI). 
 Moreover it supports E2AP v1.01/v2.03/v3.01 for all the SMs.
 
-If you want to know more about FlexRIC and its original architecture, you can find more details at: Robert Schmidt, Mikel Irazabal, and Navid Nikaein. 2021.
-FlexRIC: an SDK for next-generation SD-RANs. In Proceedings of the 17th International Conference on emerging Networking EXperiments and Technologies (CoNEXT
-'21). Association for Computing Machinery, New York, NY, USA, 411–425. [DOI](https://doi.org/10.1145/3485983.3494870). A pdf copy is available [here](https://bit.ly/3uOXuCV).
+If you want to know more about FlexRIC and its original architecture, you can find more details at:
+
+> Robert Schmidt, Mikel Irazabal, and Navid Nikaein. *2021.*
+> **FlexRIC: an SDK for next-generation SD-RANs.** In *Proceedings of the 17th International Conference on emerging Networking EXperiments and Technologies (CoNEXT '21).*
+> Association for Computing Machinery, New York, NY, USA, 411–425. [DOI](https://doi.org/10.1145/3485983.3494870).
+> A PDF copy is available [here](https://bit.ly/3uOXuCV).
 
 Below is the list of features available in this version divided per component and per service model:
 
@@ -39,7 +45,7 @@ sudo apt install -y gcc-13 g++-13 cpp-13
 sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100 --slave /usr/bin/g++ g++ /usr/bin/g++-13 --slave /usr/bin/gcov gcov /usr/bin/gcov-13
 sudo update-alternatives --config gcc # chose gcc-13
 ```
-Note: gcc-11 is not supported in FlexRIC
+> **Note:** gcc-11 is not supported in FlexRIC
 
 #### 1.1.2 (opt.) Wireshark
 Per `O-RAN.WG3.E2GAP-v02.00` specifications, no SCTP port is specified for E2AP protocol. In our implementation, we use port number 36421. Please, add the following configuration in Wireshark:
@@ -93,11 +99,13 @@ mkdir build && cd build && cmake -DXAPP_MULTILANGUAGE=ON .. && make -j8
 ```
 
 Currently available versions:
-|            |E2SM-KPM v2.01|E2SM-KPM v2.03|E2SM-KPM v3.00|
-|:-----------|:-------------|:-------------|:-------------|
-| E2AP v1.01 | Y            | Y            | Y            |
-| E2AP v2.03 | Y            | Y (default)  | Y            |
-| E2AP v3.01 | Y            | Y            | Y            |
+
+|            | E2SM-KPM v2.01 | E2SM-KPM v2.03 | E2SM-KPM v3.00 |
+|:-----------|:---------------|:---------------|:---------------|
+| E2AP v1.01 | Y              | Y              | Y              |
+| E2AP v2.03 | Y              | Y *(default)*  | Y              |
+| E2AP v3.01 | Y              | Y              | Y              |
+
 
 If you wish to modify the default versions, please, execute this command:
 ```bash
@@ -122,7 +130,7 @@ If you would like to change the default installation path, please compile as fol
 mkdir build && cd build && cmake -DCMAKE_INSTALL_PREFIX=<new-path> .. && make -j8
 ```
 
-* Note: Command `sudo make install` installs shared libraries that represent Service Models. Each time E2AP and/or E2SM-KPM versions are modified, the command must be executed again.
+> **Note:** Command `sudo make install` installs shared libraries that represent Service Models. Each time E2AP and/or E2SM-KPM versions are modified, the command must be executed again.
 
 Check that everything went fine by running unit tests:
 ```bash
@@ -351,7 +359,7 @@ sudo phc2sys -m -s InterfaceName -w
 ### 6.1 O-RAN SC nearRT-RIC
 We showcased the successful integration between OAI E2 agent and O-RAN SC nearRT-RIC in [the OAI E2AP tutorial](https://gitlab.eurecom.fr/oai/openairinterface5g/-/blob/develop/openair2/E2AP/README.md?ref_type=heads#5-o-ran-sc-nearrt-ric-interoperability).
 
-Note that the OSC nearRT-RIC can also be tested with FlexRIC E2 agent emulators (`build/examples/emulator/agent/`).
+> **Note** that the OSC nearRT-RIC can also be tested with FlexRIC E2 agent emulators (`build/examples/emulator/agent/`).
 Before proceeding with integration, please set the `e2ap_server_port` to 36422 (the default is 36421), as the E2AP port for OSC nearRT-RIC is 36422.
 
 ## 7. Support/further resources
