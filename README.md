@@ -8,8 +8,7 @@ Moreover it supports E2AP v1.01/v2.03/v3.01 for all the SMs.
 
 If you want to know more about FlexRIC and its original architecture, you can find more details at: Robert Schmidt, Mikel Irazabal, and Navid Nikaein. 2021.
 FlexRIC: an SDK for next-generation SD-RANs. In Proceedings of the 17th International Conference on emerging Networking EXperiments and Technologies (CoNEXT
-'21). Association for Computing Machinery, New York, NY, USA, 411–425. DOI: https://doi.org/10.1145/3485983.3494870. A pdf copy is available at
-https://bit.ly/3uOXuCV 
+'21). Association for Computing Machinery, New York, NY, USA, 411–425. [DOI](https://doi.org/10.1145/3485983.3494870). A pdf copy is available [here](https://bit.ly/3uOXuCV).
 
 Below is the list of features available in this version divided per component and per service model:
 
@@ -49,7 +48,7 @@ Per `O-RAN.WG3.E2GAP-v02.00` specifications, no SCTP port is specified for E2AP 
 
 #### 1.1.3 (opt.) Flatbuffer encoding
 We also provide a flatbuffers encoding/decoding scheme as alternative to ASN.1. In case that you want to use it  follow the
-instructions at https://github.com/dvidelabs/flatcc and provide the path for the lib and include when selecting it at `ccmake ..` from the build directory
+instructions at [FlatBuffers Compiler and Library in C](https://github.com/dvidelabs/flatcc) and provide the path for the lib and include when selecting it at `ccmake ..` from the build directory
 
 ### 1.2 Download the required dependencies
 
@@ -60,7 +59,7 @@ sudo apt install libsctp-dev cmake-curses-gui libpcre2-dev
 
 #### 1.2.2 (opt.) Multi-language xApp requirements
 - SWIG (at least  v.4.1).
-We use SWIG as an interface generator to enable the multi-language feature (i.e., C/C++ and Python) for the xApps. Please, check your SWIG version (i.e, `swig-version`) and install it from scratch if necessary as described here: https://swig.org/svn.html or via the code below:
+We use SWIG as an interface generator to enable the multi-language feature (i.e., C/C++ and Python) for the xApps. Please, check your SWIG version (i.e, `swig-version`) and install it from scratch if necessary as described here: [SWIG](https://swig.org/svn.html) or via the code below:
 ```bash
 git clone https://github.com/swig/swig.git
 cd swig
@@ -298,10 +297,10 @@ The Grafana application is implemented in the docker container. In order to visu
 ## 5. Integration with RAN and example of deployment
 
 ### 5.1 Integration with OpenAirInterface 5G RAN
-Follow the instructions https://gitlab.eurecom.fr/oai/openairinterface5g/-/blob/develop/openair2/E2AP/README.md.
+Follow the instructions [here](https://gitlab.eurecom.fr/oai/openairinterface5g/-/blob/develop/openair2/E2AP/README.md).
 
 ### 5.2 Integration with srsRAN 5G RAN
-Follow the instructions https://docs.srsran.com/projects/project/en/latest/tutorials/source/near-rt-ric/source/index.html.
+Follow the instructions [here](https://docs.srsran.com/projects/project/en/latest/tutorials/source/near-rt-ric/source/index.html).
 
 ### 5.3 Integration with Keysight RICtest
 
@@ -356,14 +355,13 @@ Note that the OSC nearRT-RIC can also be tested with FlexRIC E2 agent emulators 
 Before proceeding with integration, please set the `e2ap_server_port` to 36422 (the default is 36421), as the E2AP port for OSC nearRT-RIC is 36422.
 
 ## 7. Support/further resources
-* Mailing list: if you need help or have some questions, you can subscribe to the mailing list `techs@mosaic-5g.io` that you can find at
-  https://gitlab.eurecom.fr/mosaic5g/mosaic5g/-/wikis/mailing-lists. The emails are archived and available publicly. 
+* Mailing list: if you need help or have some questions, you can subscribe to the mailing list `techs@mosaic-5g.io` that you can find at [Gitlab](https://gitlab.eurecom.fr/mosaic5g/mosaic5g/-/wikis/mailing-lists). The emails are archived and available publicly.
 * [Demo](DEMO.md) for flexric in July 2022
 * [The Wiki space](https://gitlab.eurecom.fr/mosaic5g/flexric/-/wikis/home) contains tutorials and presentations
 * [Original FlexRIC paper ACM CoNEXT 2021](https://bit.ly/3uOXuCV)
 
 ## 8. OAM Project Group & Roadmap
-Check https://openairinterface.org/projects/oam-project-group/
+Check on [OpenAirInterface Website](https://openairinterface.org/projects/oam-project-group/).
 
 ## 9. FlexRIC Milestone
-Check on https://gitlab.eurecom.fr/mosaic5g/flexric/-/milestones and in https://openairinterface.org/mosaic5g/
+Check on [FlexRIC Milestones](https://gitlab.eurecom.fr/mosaic5g/flexric/-/milestones) and [OpenAirInterface Website](https://openairinterface.org/mosaic5g/).
