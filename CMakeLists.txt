@@ -242,6 +242,9 @@ add_definitions(-DSERVICE_MODEL_DIR_PATH="${SM_DIR_PATH}/")
 set(SM_ENCODING_KPM "ASN" CACHE STRING "The KPM SM encoding to use")
 set_property(CACHE SM_ENCODING_KPM PROPERTY STRINGS "PLAIN" "ASN" "FLATBUFFERS")
 message(STATUS "Selected KPM SM_ENCODING: ${SM_ENCODING_KPM}")
+# Copy KPM measurement list (defined by 3GPP TS 28.552) into build directory so the xApp can load it from there
+configure_file(${CMAKE_SOURCE_DIR}/src/sm/kpm_sm/28_552_kpm_meas.txt ${CMAKE_CURRENT_BINARY_DIR}/28_552_kpm_meas.txt COPYONLY)
+set(KPM_MEAS_LIST "${CMAKE_CURRENT_BINARY_DIR}/28_552_kpm_meas.txt")
 
 set(KPM_VERSION "KPM_V2_03" CACHE STRING "The KPM SM version to use")
 set_property(CACHE SM_ENCODING_KPM PROPERTY STRINGS  "KPM_V2_01" "KPM_V2_03" "KPM_V3_00")
