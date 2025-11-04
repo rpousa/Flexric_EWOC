@@ -294,7 +294,6 @@ void create_kpm_table(sqlite3* db)
                                "meas_name TEXT,"
                                "label_value REAL,"
                                "measure_value REAL,"
-                               "unit TEXT,"
                                "incompleteFlag TEXT"
                                ");";
 
@@ -915,28 +914,6 @@ int to_sql_string_gtp_NGUT(global_e2_node_id_t const* id,gtp_ngu_t_stats_t* gtp,
 // }
 
 static
-const measure_info_t measures[] = {
-  {"DRB.RlcSduDelayDl", "μs"},
-  {"DRB.UEThpDl", "kbps"},
-  {"DRB.UEThpUl", "kbps"},
-  {"RRU.PrbTotDl", "PRBs"},
-  {"RRU.PrbTotUl", "PRBs"},
-  {"DRB.PdcpSduVolumeDL", "kb"},
-  {"DRB.PdcpSduVolumeUL", "kb"},
-};
-
-measure_info_t get_measure_info(const byte_array_t* name)
-{
-  const size_t len = sizeof(measures) / sizeof(measures[0]);
-  for (size_t i = 0; i < len; i++) {
-    if (cmp_str_ba(measures[i].name, *name) == 0) {
-      return measures[i];
-    }
-  }
-  return (measure_info_t){"Unknown", ""};
-}
-
-static
 void to_sql_string_kpm_measRecord(global_e2_node_id_t const* id,
                                   meas_record_lst_t* kpm_measRecord,
                                   byte_array_t name,
@@ -969,14 +946,14 @@ void to_sql_string_kpm_measRecord(global_e2_node_id_t const* id,
   }
   value_str = value_buffer;
 
-  measure_info_t measure = get_measure_info(&name);
   uint8_t label_value = 0;  // TODO: implement the logic to get the label value if needed
 
   char* ngran_type = get_ngran_name(id->type);
+  char *name_str = cp_ba_to_str(name);
 
   int rc = snprintf(out, out_len,
     "INSERT INTO KPM_MeasRecord VALUES("
-    "%lu,'%s',%d,%d,%d,%lu,%u,'%s','%s','%s','%s',%u,'%s','%s','%s');"
+    "%lu,'%s',%d,%d,%d,%lu,%u,'%s','%s','%s','%s',%u,'%s','%s');"
     , tstamp
     , ngran_type
     , id->nb_id.nb_id
@@ -987,13 +964,13 @@ void to_sql_string_kpm_measRecord(global_e2_node_id_t const* id,
     , ue_id
     , ue_id_group
     , ran_ue_id
-    , measure.name
+    , name_str
     , label_value
     , value_str
-    , measure.unit
     , incomplete_flag_str
   );
   assert(rc > 0 && rc < (int)out_len && "Not enough space in the char array to write all the data");
+  free(name_str);
 }
 
 static
