@@ -199,7 +199,7 @@ To override specific default values, you can use the following command-line opti
 * Start different C xApps
   * start the E2SM-KPM monitor xApp - fetch UE-level measurements based on S-NSSAI `(1, 0xffffff)` condition; `O-RAN.WG3.E2SM-KPM-version` section 7.4.5 - REPORT Service Style 4 ("Common condition-based, UE-level")
   ```bash
-  XAPP_DURATION=20 ./build/examples/xApp/c/monitor/xapp_kpm_moni -d /flexric/ -n xapp_db # not supported by emu_agent_enb; values for options `-d` and `-n` represent an example for shared volume with Grafana
+  XAPP_DURATION=20 ./build/examples/xApp/c/monitor/xapp_kpm_moni -d /db_dir/ -n xapp_db # not supported by emu_agent_enb; values for options `-d` and `-n` represent an example for shared volume with Grafana
   ```
 
   * start the E2SM-RC monitor xApp - based on `ORAN.WG3.E2SM-RC-v01.03` specification, aperiodic subscriptions to:
@@ -267,7 +267,7 @@ At the moment, we support real time monitoring for E2SM-KPM Service Model in Gra
 sudo grafana-cli plugins install frser-sqlite-datasource
 sudo vi /etc/grafana/grafana.ini # set the min_refresh_interval to 1s
 sudo systemctl start grafana-server
-DB_DIR=/flexric/ && sudo mkdir $DB_DIR && sudo chown -R "$USER":"$USER" $DB_DIR
+DB_DIR=/db_dir/ && sudo mkdir $DB_DIR && sudo chown -R "$USER":"$USER" $DB_DIR
 ```
 
 Import the Grafana configuration:
