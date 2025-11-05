@@ -52,7 +52,7 @@ server = 'https://api.oai.cs.eurecom.fr:6443'
 dockerBuildOptions = '--no-cache '
 
 // Private Local Registry URL
-PrivateRegistryURL = 'porcepix.sboai.cs.eurecom.fr'
+PrivateRegistryURL = params.PrivateRegistryURL
 
 //-------------------------------------------------------------------------------
 // Pipeline start
