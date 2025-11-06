@@ -144,9 +144,9 @@
             "type": "frser-sqlite-datasource",
             "uid": "edthsvykzynswc"
           },
-          "queryText": "SELECT\n    tstamp AS \"time\",\n    ran_ue_id,\n    AVG(measure_value)*1000 AS UE\nFROM KPM_MeasRecord\nWHERE meas_name = 'DRB.PdcpSduVolumeDL'\nGROUP BY tstamp, ran_ue_id\nORDER BY tstamp",
+          "queryText": "SELECT\n    tstamp AS \"time\",\n    ran_ue_id,\n    AVG(measure_value)*1000000 AS UE\nFROM KPM_MeasRecord\nWHERE meas_name = 'DRB.PdcpSduVolumeDL'\nGROUP BY tstamp, ran_ue_id\nORDER BY tstamp",
           "queryType": "time series",
-          "rawQueryText": "SELECT\n    tstamp AS \"time\",\n    ran_ue_id,\n    AVG(measure_value)*1000 AS UE\nFROM KPM_MeasRecord\nWHERE meas_name = 'DRB.PdcpSduVolumeDL'\nGROUP BY tstamp, ran_ue_id\nORDER BY tstamp",
+          "rawQueryText": "SELECT\n    tstamp AS \"time\",\n    ran_ue_id,\n    AVG(measure_value)*1000000 AS UE\nFROM KPM_MeasRecord\nWHERE meas_name = 'DRB.PdcpSduVolumeDL'\nGROUP BY tstamp, ran_ue_id\nORDER BY tstamp",
           "refId": "A",
           "timeColumns": [
             "time",
@@ -280,9 +280,9 @@
             "type": "frser-sqlite-datasource",
             "uid": "edthsvykzynswc"
           },
-          "queryText": "SELECT\n    tstamp AS \"time\",\n    ran_ue_id,\n    AVG(measure_value)*1000 AS UE\nFROM KPM_MeasRecord\nWHERE meas_name = 'DRB.PdcpSduVolumeUL'\nGROUP BY tstamp, ran_ue_id\nORDER BY tstamp",
+          "queryText": "SELECT\n    tstamp AS \"time\",\n    ran_ue_id,\n    AVG(measure_value)*1000000 AS UE\nFROM KPM_MeasRecord\nWHERE meas_name = 'DRB.PdcpSduVolumeUL'\nGROUP BY tstamp, ran_ue_id\nORDER BY tstamp",
           "queryType": "time series",
-          "rawQueryText": "SELECT\n    tstamp AS \"time\",\n    ran_ue_id,\n    AVG(measure_value)*1000 AS UE\nFROM KPM_MeasRecord\nWHERE meas_name = 'DRB.PdcpSduVolumeUL'\nGROUP BY tstamp, ran_ue_id\nORDER BY tstamp",
+          "rawQueryText": "SELECT\n    tstamp AS \"time\",\n    ran_ue_id,\n    AVG(measure_value)*1000000 AS UE\nFROM KPM_MeasRecord\nWHERE meas_name = 'DRB.PdcpSduVolumeUL'\nGROUP BY tstamp, ran_ue_id\nORDER BY tstamp",
           "refId": "A",
           "timeColumns": [
             "time",
