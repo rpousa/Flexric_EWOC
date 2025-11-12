@@ -298,9 +298,12 @@ void print_usage(void)
   printf("  -h         : print usage\n");
   printf("  -c         : path to the config file\n");
   printf("  -p         : path to the shared libs \n");
+  printf("  -a         : nearRT-RIC IP address\n");
+  printf("  -d         : DB_DIR\n");
+  printf("  -n         : DB_NAME\n");
   printf(
       "\n");
-  printf("Ex. -p /usr/local/lib/flexric/ -c /usr/local/etc/flexric/flexric.conf \n");
+  printf("Ex. -p /usr/local/lib/flexric/ -c /usr/local/etc/flexric/flexric.conf -a 127.0.0.1 -d /flexric/ -n xapp_db\n");
 } 
 
 static
@@ -311,7 +314,7 @@ void parse_args(int argc, char* const* argv, fr_args_t* args)
   assert(args != NULL);
 
   int opt = '?';
-  const char *optstring = "hc:p:";
+  const char *optstring = "hc:p:a:d:n:";
   while((opt = getopt(argc, argv, optstring)) != -1) {
     switch(opt) {
       case 'h':{
@@ -351,6 +354,44 @@ void parse_args(int argc, char* const* argv, fr_args_t* args)
 
                  break;
                }
+      case 'a':{
+                 int const len = strlen(optarg);
+                 assert(len < FR_IP_ADDRESS_LEN - 1 );
+
+                 if (valid_ip(optarg) == false) {
+                   printf("IP address string invalid = %s.\n", optarg);
+                   exit(EXIT_FAILURE);
+                 }
+
+                 memcpy(args->ip, optarg, FR_IP_ADDRESS_LEN);
+
+                 break;
+                }
+      case 'd':{
+                 int const len = strlen(optarg);
+                 assert(len < FR_CONF_FILE_LEN - 1 );
+
+                 if (!is_directory(optarg)) {
+                   printf("Error: %s is not a directory \n", optarg);
+                   exit(EXIT_FAILURE);
+                 }
+                 if (optarg[len - 1] != '/') {
+                   printf("Error: %s directory should finish with a `/` , e.g. /tmp/.\n", optarg);
+                   exit(EXIT_FAILURE);
+                 }
+
+                 memcpy(args->db_dir, optarg, FR_CONF_FILE_LEN);
+
+                 break;
+               }
+      case 'n':{
+                 int const len = strlen(optarg);
+                 assert(len < FR_CONF_FILE_LEN - 1 );
+
+                 memcpy(args->db_name, optarg, FR_CONF_FILE_LEN);
+
+                 break;
+               }
       case '?':{
                  printf("Error: unknown flag %c ??\n ",optopt);
                  print_usage();
@@ -385,7 +426,7 @@ fr_args_t init_fr_args(int argc, char* argv[])
   load_default_val(&args);
   
   if(argc > 1){
-    assert(argc < 6 && "Only -h -c -p flags supported");
+    assert(argc < 12 && "Supported flags: -h -c -p -a -d -n");
     assert(argv != NULL);
     parse_args(argc, argv, &args);
   }
@@ -401,7 +442,7 @@ fr_args_t init_fr_args(int argc, char* argv[])
 char* get_near_ric_ip(fr_args_t const* args)
 {
   // fast path
-  if(args->ip != NULL)
+  if(strcmp(args->ip, "\0") != 0)
     return strdup(args->ip);
 
   char* line = NULL;
@@ -443,6 +484,9 @@ char* get_near_ric_ip(fr_args_t const* args)
 
 char* get_conf_db_dir(fr_args_t const* args)
 {
+  if(strcmp(args->db_dir, "\0") != 0)
+    return strdup(args->db_dir);
+
   char* line = NULL;
   defer({free(line);});
   size_t len = 0;
@@ -478,6 +522,9 @@ char* get_conf_db_dir(fr_args_t const* args)
 
 char* get_conf_db_name(fr_args_t const* args)
 {
+  if(strcmp(args->db_name, "\0") != 0)
+    return strdup(args->db_name);
+
   char* line = NULL;
   defer({free(line);});
   size_t len = 0;

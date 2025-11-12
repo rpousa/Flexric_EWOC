@@ -157,7 +157,7 @@ However, please be aware that not all of them are supported with OAI RAN, and wr
 Optionally run Wireshark and capture E2AP traffic.
 
 * Start the nearRT-RIC
-Please make sure to set the desired nearRT-RIC IP address `NEAR_RIC_IP` in `/usr/local/etc/flexric/flexric.conf`.
+Please make sure to set the desired nearRT-RIC IP address `NEAR_RIC_IP` in `/usr/local/etc/flexric/flexric.conf`, or feel free to overwrite it with option `-a`.
 ```bash
 ./build/examples/ric/nearRT-RIC
 ```
@@ -189,10 +189,17 @@ Within E2 Setup Request message, E2 node sends the list of supported service mod
 As this section is dedicated for testing with E2 agent emulators, **all RIC INDICATION messages contain random data, as there is no UE connected**.
 
 `XAPP_DURATION` environment variable overwrites the default xApp duration of 20s. If the negative value used, the xApp duration is considered to be infinite.
+
+At runtime, the xApp loads its default configuration from `/usr/local/etc/flexric/flexric.conf`.
+To override specific default values, you can use the following command-line options:
+* `-a`: overrides the `NEAR_RIC_IP`
+* `-d`: overrides the `DB_DIR`
+* `-n`: overrides the `DB_NAME`
+
 * Start different C xApps
   * start the E2SM-KPM monitor xApp - fetch UE-level measurements based on S-NSSAI `(1, 0xffffff)` condition; `O-RAN.WG3.E2SM-KPM-version` section 7.4.5 - REPORT Service Style 4 ("Common condition-based, UE-level")
   ```bash
-  XAPP_DURATION=20 ./build/examples/xApp/c/monitor/xapp_kpm_moni # not supported by emu_agent_enb
+  XAPP_DURATION=20 ./build/examples/xApp/c/monitor/xapp_kpm_moni -d /db_dir/ -n xapp_db # not supported by emu_agent_enb; values for options `-d` and `-n` represent an example for shared volume with Grafana
   ```
 
   * start the E2SM-RC monitor xApp - based on `ORAN.WG3.E2SM-RC-v01.03` specification, aperiodic subscriptions to:
@@ -249,8 +256,24 @@ At this point, FlexRIC is working correctly in your computer and you have alread
 
 The latency that you observe in your monitor xApp is the latency from the E2 Agent to the nearRT-RIC and xApp. In modern computers the latency should be less than 200 microseconds or 50x faster than the O-RAN specified minimum nearRT-RIC latency i.e., (10 ms - 1 sec) range.
 Therefore, FlexRIC is well suited for use cases with ultra low-latency requirements.
-Additionally, all the data received in the xApp is also written to `/tmp/xapp_db` in case that offline data processing is wanted (e.g., Machine Learning/Artificial Intelligence applications). You browse the data using e.g., sqlitebrowser. 
-Please, check the example folder for other working xApp use cases.
+
+Additionally, all the data received in the xApp is also written to `DB_DIR/DB_NAME` or `/tmp/xapp_db_<random-numbers>` (if `DB_DIR=/tmp/`) in case that offline data processing is wanted (e.g., Machine Learning/Artificial Intelligence applications). You browse the data using e.g., sqlitebrowser.
+
+### 4.1.1 Grafana
+[The official Grafana installation instructions](https://grafana.com/docs/grafana/latest/setup-grafana/installation/).
+
+At the moment, we support real time monitoring for E2SM-KPM Service Model in Grafana. After the Grafana installation, please follow the additional steps: 
+```bash
+sudo grafana-cli plugins install frser-sqlite-datasource
+sudo vi /etc/grafana/grafana.ini # set the min_refresh_interval to 1s
+sudo systemctl start grafana-server
+DB_DIR=/db_dir/ && sudo mkdir $DB_DIR && sudo chown -R "$USER":"$USER" $DB_DIR
+```
+
+Import the Grafana configuration:
+- Open Grafana in your web browser `http://localhost:3000`
+- In `Connections > Data Sources`, click `Add new data source` and choose `SQLite`; set the path to `DB_DIR/DB_NAME`; save and test the connection
+- In `Dashboards > New > Import` upload the `grafana/dashboards/grafana-dashboard.json` file; select the SQLite data source you created
 
 ## 4.2 (opt.) Docker testbed
 FlexRIC is supported on the following distributions: Ubuntu, Red Hat, and Rocky Linux. You can build the images as:
@@ -268,6 +291,9 @@ In order to reproduce the [bare-metal testbed](#41-bare-metal-testbed) in docker
 cd docker
 docker compose up -d
 ```
+
+### 4.2.1 Grafana
+The Grafana application is implemented in the docker container. In order to visualize real time E2SM-KPM data, open Grafana in your web browser `http://localhost:3000`.
 
 # 5. Integration with RAN and example of deployment
 
