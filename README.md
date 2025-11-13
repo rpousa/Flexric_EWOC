@@ -364,9 +364,17 @@ Before proceeding with integration, please set the `e2ap_server_port` to 36422 (
 
 ## 7. Support/further resources
 * Mailing list: if you need help or have some questions, you can subscribe to the mailing list `techs@mosaic-5g.io` that you can find at [Gitlab](https://gitlab.eurecom.fr/mosaic5g/mosaic5g/-/wikis/mailing-lists). The emails are archived and available publicly.
-* [Demo](DEMO.md) for flexric in July 2022
 * [The Wiki space](https://gitlab.eurecom.fr/mosaic5g/flexric/-/wikis/home) contains tutorials and presentations
 * [Original FlexRIC paper ACM CoNEXT 2021](https://bit.ly/3uOXuCV)
+
+### 7.1 Demo - Summer Workshop 2022
+
+If you want to see the full power of FlexRIC using its multi-RAT, multi-vendor, multi-language, multi-agent and multi-xApp capabilities in action, you can replicate the following demo:
+
+[FlexRIC - Enable 4G & 5G slices via Slice Service Model - OpenAirInterface Summer Workshop 2022 July](https://www.youtube.com/watch?v=sHJSA3FgGd8)
+
+![FlexRIC](fig/1.png)
+
 
 ## 8. OAM Project Group & Roadmap
 Check on [OpenAirInterface Website](https://openairinterface.org/projects/oam-project-group/).
