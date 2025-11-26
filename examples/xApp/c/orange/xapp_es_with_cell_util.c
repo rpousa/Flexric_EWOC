@@ -520,16 +520,12 @@ static void sm_cb_kpm(sm_ag_if_rd_t const* rd)
 
   // Reading Indication Message Format 3
   kpm_ind_data_t const* ind = &rd->ind.kpm.ind;
-  kpm_ric_ind_hdr_format_1_t const* hdr_frm_1 = &ind->hdr.kpm_ric_ind_hdr_format_1;
   kpm_ind_msg_format_3_t const* msg_frm_3 = &ind->msg.frm_3;
 
   // uint64_t const now = time_now_us();
   static int counter = 1;
   {
     lock_guard(&mtx);
-    // printf("\n time now = %ld \n",now);
-    // printf("\n time from simulator = %ld \n", hdr_frm_1->collectStartTime); //ntohll(hdr_frm_1->collectStartTime)
-    // printf("\n%7d KPM ind_msg latency = %ld [μs]\n", counter, now -  hdr_frm_1->collectStartTime); // xApp <-> E2 Node
 
     // Reported list of measurements per UE
     for (size_t i = 0; i < msg_frm_3->ue_meas_report_lst_len; i++) 
@@ -1241,7 +1237,6 @@ uint16_t doHandoverAction(callback_data_t data)
                                 HANDOVER_CONTROL_7_6_4_1);
   rc_ctrl.msg = gen_handover_rc_ctrl_msg(FORMAT_1_E2SM_RC_CTRL_MSG, trgtCell);
 
-  int64_t st = time_now_us();
   printf("[xApp]: Send Handover Control message to move IMSI %d from cellId %d to target cellId %c \n", data.ueID,
          data.frmCurntCell, trgtCell);
 
