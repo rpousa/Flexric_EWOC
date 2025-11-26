@@ -80,70 +80,6 @@ static uint64_t const period_ms = 100;
 
 static pthread_mutex_t mtx;
 
-static void log_int_value(byte_array_t name, meas_record_lst_t meas_record) 
-{
-  if (cmp_str_ba("RRU.PrbTotDl", name) == 0) {
-    printf("RRU.PrbTotDl = %d [PRBs]\n", meas_record.int_val);
-    printf("RRU.PrbTotUl = %d [PRBs]\n", meas_record.int_val);
-  } else if (cmp_str_ba("DRB.PdcpSduVolumeDL", name) == 0) {
-    printf("DRB.PdcpSduVolumeDL = %d [kb]\n", meas_record.int_val);
-  } else if (cmp_str_ba("DRB.PdcpSduVolumeUL", name) == 0) {
-    printf("DRB.PdcpSduVolumeUL = %d [kb]\n", meas_record.int_val);
-    // } else if (strncmp(name.buf, "L3neighSINRListOf_UEID_", strlen("L3neighSINRListOf_UEID_")) == 0) {
-    //   printf("%s, Neighbour=%d \n", name.buf, meas_record.int_val);
-  } else {
-    // printf("Name= %s, value= %d \n", name.buf, meas_record.int_val);
-  }
-}
-
-static void log_real_value(byte_array_t name, meas_record_lst_t meas_record) 
-{
-  char *name_str = cp_ba_to_str(name);
-  if (strcmp("DRB.RlcSduDelayDl", name_str) == 0) {
-    printf("DRB.RlcSduDelayDl = %.2f [μs]\n", meas_record.real_val);
-  } else if (strcmp("DRB.UEThpDl", name_str) == 0) {
-    printf("DRB.UEThpDl = %.2f [kbps]\n", meas_record.real_val);
-  } else if (strcmp("DRB.UEThpUl", name_str) == 0) {
-    printf("DRB.UEThpUl = %.2f [kbps]\n", meas_record.real_val);
-  } else if (strncmp(name_str, "L3servingSINR3gpp_cell_", strlen("L3servingSINR3gpp_cell_")) == 0) {
-    printf("%s, sinr= %.4f [db]\n", name_str, meas_record.real_val);
-  } else if (strncmp(name_str, "L3neighSINRListOf_UEID_", strlen("L3neighSINRListOf_UEID_")) == 0) {
-    printf("%s, sinr= %.4f [db]\n", name_str, meas_record.real_val);
-  } else {
-    // printf("Name= %s, value= %.6f \n", name.buf, meas_record.real_val);
-  }
-  free(name_str);
-}
-
-typedef void (*log_meas_value)(byte_array_t name, meas_record_lst_t meas_record);
-
-static log_meas_value get_meas_value[END_MEAS_VALUE] = {
-    log_int_value,
-    log_real_value,
-    NULL,
-};
-
-static void match_meas_name_type(meas_type_t meas_type, meas_record_lst_t meas_record) 
-{
-  // Get the value of the Measurement
-  get_meas_value[meas_record.value](meas_type.name, meas_record);
-}
-
-static void match_id_meas_type(meas_type_t meas_type, meas_record_lst_t meas_record) 
-{
-  (void)meas_type;
-  (void)meas_record;
-  assert(false && "ID Measurement Type not yet supported");
-}
-
-typedef void (*check_meas_type)(meas_type_t meas_type, meas_record_lst_t meas_record);
-
-static check_meas_type match_meas_type[END_MEAS_TYPE] = 
-{
-    match_meas_name_type,
-    match_id_meas_type,
-};
-
 /*
 each cell has connected UEs(with SINR value),
 each Cell have neighbours of cells(with SINR value)
@@ -400,22 +336,6 @@ void remove_neighCell() {}
 // GetIMSI, getSINR, findX, getTargetCell(sinrMap, targetCell)
 // seach(findXX);
 
-// static
-// void log_kpm_measurements(kpm_ind_msg_format_1_t const* msg_frm_1)
-// {
-//   assert(msg_frm_1->meas_info_lst_len > 0 && "Cannot correctly print measurements");
-//   // UE Measurements per granularity period
-//   for (size_t j = 0; j < msg_frm_1->meas_data_lst_len; j++) {
-//     meas_data_lst_t const data_item = msg_frm_1->meas_data_lst[j];
-//     for (size_t z = 0; z < data_item.meas_record_len; z++) {
-//       meas_type_t const meas_type = msg_frm_1->meas_info_lst[z].meas_type;
-//       meas_record_lst_t const record_item = data_item.meas_record_lst[z];
-//       match_meas_type[meas_type.type](meas_type, record_item);
-//       if (data_item.incomplete_flag && *data_item.incomplete_flag == TRUE_ENUM_VALUE)
-//         printf("Measurement Record not reliable");
-//     }
-//   }
-// }
 struct InfoObj 
 {
   uint16_t cellID;
