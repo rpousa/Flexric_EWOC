@@ -145,19 +145,21 @@ static void log_int_value(byte_array_t name, meas_record_lst_t meas_record)
 
 static void log_real_value(byte_array_t name, meas_record_lst_t meas_record) 
 {
-  if (cmp_str_ba("DRB.RlcSduDelayDl", name) == 0) {
+  char *name_str = cp_ba_to_str(name);
+  if (strcmp("DRB.RlcSduDelayDl", name_str) == 0) {
     printf("DRB.RlcSduDelayDl = %.2f [μs]\n", meas_record.real_val);
-  } else if (cmp_str_ba("DRB.UEThpDl", name) == 0) {
+  } else if (strcmp("DRB.UEThpDl", name_str) == 0) {
     printf("DRB.UEThpDl = %.2f [kbps]\n", meas_record.real_val);
-  } else if (cmp_str_ba("DRB.UEThpUl", name) == 0) {
+  } else if (strcmp("DRB.UEThpUl", name_str) == 0) {
     printf("DRB.UEThpUl = %.2f [kbps]\n", meas_record.real_val);
-  } else if (strncmp(name.buf, "L3servingSINR3gpp_cell_", strlen("L3servingSINR3gpp_cell_")) == 0) {
-    printf("%s, sinr= %.4f [db]\n", name.buf, meas_record.real_val);
-  } else if (strncmp(name.buf, "L3neighSINRListOf_UEID_", strlen("L3neighSINRListOf_UEID_")) == 0) {
-    printf("%s, sinr= %.4f [db]\n", name.buf, meas_record.real_val);
+  } else if (strncmp(name_str, "L3servingSINR3gpp_cell_", strlen("L3servingSINR3gpp_cell_")) == 0) {
+    printf("%s, sinr= %.4f [db]\n", name_str, meas_record.real_val);
+  } else if (strncmp(name_str, "L3neighSINRListOf_UEID_", strlen("L3neighSINRListOf_UEID_")) == 0) {
+    printf("%s, sinr= %.4f [db]\n", name_str, meas_record.real_val);
   } else {
     // printf("Name= %s, value= %.6f \n", name.buf, meas_record.real_val);
   }
+  free(name_str);
 }
 
 typedef void (*log_meas_value)(byte_array_t name, meas_record_lst_t meas_record);
@@ -525,9 +527,10 @@ static void log_kpm_measurements(kpm_ind_msg_format_1_t const* msg_frm_1)
 
       if (meas_type.type == NAME_MEAS_TYPE) 
       {
-        if (isMeasNameContains(meas_type.name.buf, "L3servingSINR3gpp_cell_")) 
+        char *meas_name_str = cp_ba_to_str(meas_type.name);
+        if (isMeasNameContains(meas_name_str, "L3servingSINR3gpp_cell_"))
         {
-          struct InfoObj info = parseServingMsg(meas_type.name.buf);
+          struct InfoObj info = parseServingMsg(meas_name_str);
           double sinr = record_item.real_val;
 
           struct SINR_Map* cell = add_SINR(info.cellID);
@@ -535,9 +538,9 @@ static void log_kpm_measurements(kpm_ind_msg_format_1_t const* msg_frm_1)
 
           printf("Serving Cell %d - UE %d: %.2f dB\n", info.cellID, info.ueID, sinr);
 
-        } else if (isMeasNameContains(meas_type.name.buf, "L3neighSINRListOf_UEID_")) 
+        } else if (isMeasNameContains(meas_name_str, "L3neighSINRListOf_UEID_"))
         {
-          struct InfoObj info = parseNeighMsg(meas_type.name.buf);
+          struct InfoObj info = parseNeighMsg(meas_name_str);
 
           meas_record_lst_t const sinr = record_item;
           meas_record_lst_t const NeighbourID = data_item.meas_record_lst[j + 1];
@@ -549,6 +552,7 @@ static void log_kpm_measurements(kpm_ind_msg_format_1_t const* msg_frm_1)
           j += 2;
           continue;
         }
+        free(meas_name_str);
       }
       j++;
     }
