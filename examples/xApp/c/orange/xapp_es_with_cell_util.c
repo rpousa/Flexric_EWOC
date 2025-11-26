@@ -80,55 +80,6 @@ static uint64_t const period_ms = 100;
 
 static pthread_mutex_t mtx;
 
-static void log_gnb_ue_id(ue_id_e2sm_t ue_id) 
-{
-  if (ue_id.gnb.gnb_cu_ue_f1ap_lst != NULL) 
-  {
-    for (size_t i = 0; i < ue_id.gnb.gnb_cu_ue_f1ap_lst_len; i++) 
-    {
-      printf("UE ID type = gNB-CU, gnb_cu_ue_f1ap = %u\n", ue_id.gnb.gnb_cu_ue_f1ap_lst[i]);
-    }
-  } else 
-  {
-    printf("UE ID type = gNB, amf_ue_ngap_id = %lu\n", ue_id.gnb.amf_ue_ngap_id);
-  }
-  if (ue_id.gnb.ran_ue_id != NULL) 
-  {
-    printf("ran_ue_id = %lx\n", *ue_id.gnb.ran_ue_id);  // RAN UE NGAP ID
-  }
-}
-
-static void log_du_ue_id(ue_id_e2sm_t ue_id) 
-{
-  printf("UE ID type = gNB-DU, gnb_cu_ue_f1ap = %u\n", ue_id.gnb_du.gnb_cu_ue_f1ap);
-  if (ue_id.gnb_du.ran_ue_id != NULL) 
-  {
-    printf("ran_ue_id = %lx\n", *ue_id.gnb_du.ran_ue_id);  // RAN UE NGAP ID
-  }
-}
-
-static void log_cuup_ue_id(ue_id_e2sm_t ue_id) 
-{
-  printf("UE ID type = gNB-CU-UP, gnb_cu_cp_ue_e1ap = %u\n", ue_id.gnb_cu_up.gnb_cu_cp_ue_e1ap);
-  if (ue_id.gnb_cu_up.ran_ue_id != NULL) 
-  {
-    printf("ran_ue_id = %lx\n", *ue_id.gnb_cu_up.ran_ue_id);  // RAN UE NGAP ID
-  }
-}
-
-typedef void (*log_ue_id)(ue_id_e2sm_t ue_id);
-
-static log_ue_id log_ue_id_e2sm[END_UE_ID_E2SM] = 
-{
-    // log_gnb_ue_id, // common for gNB-mono, CU and CU-CP
-    log_du_ue_id,
-    log_cuup_ue_id,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-};
-
 static void log_int_value(byte_array_t name, meas_record_lst_t meas_record) 
 {
   if (cmp_str_ba("RRU.PrbTotDl", name) == 0) {
@@ -583,13 +534,9 @@ static void sm_cb_kpm(sm_ag_if_rd_t const* rd)
     // Reported list of measurements per UE
     for (size_t i = 0; i < msg_frm_3->ue_meas_report_lst_len; i++) 
     {
-      // log UE ID
-      ue_id_e2sm_t const ue_id_e2sm = msg_frm_3->meas_report_per_ue[i].ue_meas_report_lst;
-      ue_id_e2sm_e const type = ue_id_e2sm.type;
-      // log_ue_id_e2sm[type](ue_id_e2sm);
       // Save UE ID for filling RC Control message
       free_ue_id_e2sm(&ue_id);
-      ue_id = cp_ue_id_e2sm(&ue_id_e2sm);
+      ue_id = cp_ue_id_e2sm(&msg_frm_3->meas_report_per_ue[i].ue_meas_report_lst);
 
       // log measurements
       log_kpm_measurements(&msg_frm_3->meas_report_per_ue[i].ind_msg_format_1);
