@@ -36,6 +36,8 @@
 #include "../../../../src/sm/rc_sm/ie/rc_data_ie.h"
 #include "../../../../src/util/e.h"
 
+#include <unistd.h>
+
 #define MIN_SINR -10
 
 typedef struct {
