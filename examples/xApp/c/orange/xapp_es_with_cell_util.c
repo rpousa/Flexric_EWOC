@@ -1067,8 +1067,8 @@ void forEachCell(Callback targetCellFinding, Callback cbHOAction, Callback cbSwi
 
       printf(" Cell %d  meeting the Action Defination Condition\n", cell->cellID);
 
-      int handovers_needed = 0;
-      int handovers_completed = 0;
+      size_t handovers_needed = 0;
+      size_t handovers_completed = 0;
 
       // Check each UE in this cell
       for (int j = 0; j < MAX_REGISTERED_UES; j++) {
@@ -1107,7 +1107,7 @@ void forEachCell(Callback targetCellFinding, Callback cbHOAction, Callback cbSwi
           (timeout_reached && handovers_completed == cell->numOfConnectedUEs)) 
           {
         
-        printf("All handovers complete (%d/%d) or timeout reached for cell %d\n", 
+        printf("All handovers complete (%ld/%ld) or timeout reached for cell %d\n",
                handovers_completed, handovers_needed, cell->cellID);
         
         data.frmCurntCell = cell->cellID;
