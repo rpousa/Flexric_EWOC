@@ -219,6 +219,21 @@ void log_kpm_measurements(kpm_ind_msg_format_1_t const* msg_frm_1)
 }
 
 static
+void log_kpm_ind_msg_frm_3(kpm_ind_msg_format_3_t const* msg)
+{
+  // Reported list of measurements per UE
+  for (size_t i = 0; i < msg->ue_meas_report_lst_len; i++) {
+    // log UE ID
+    ue_id_e2sm_t const ue_id_e2sm = msg->meas_report_per_ue[i].ue_meas_report_lst;
+    ue_id_e2sm_e const type = ue_id_e2sm.type;
+    log_ue_id_e2sm[type](ue_id_e2sm);
+
+    // log measurements
+    log_kpm_measurements(&msg->meas_report_per_ue[i].ind_msg_format_1);
+  }
+}
+
+static
 void sm_cb_kpm(sm_ag_if_rd_t const* rd)
 {
   assert(rd != NULL);
@@ -228,7 +243,6 @@ void sm_cb_kpm(sm_ag_if_rd_t const* rd)
   // Reading Indication Message Format 3
   kpm_ind_data_t const* ind = &rd->ind.kpm.ind;
   kpm_ric_ind_hdr_format_1_t const* hdr_frm_1 = &ind->hdr.kpm_ric_ind_hdr_format_1;
-  kpm_ind_msg_format_3_t const* msg_frm_3 = &ind->msg.frm_3;
 
   int64_t const now = time_now_us();
   static int counter = 1;
@@ -237,16 +251,10 @@ void sm_cb_kpm(sm_ag_if_rd_t const* rd)
 
     printf("\n%7d KPM ind_msg latency = %ld [μs]\n", counter, now - hdr_frm_1->collectStartTime); // xApp <-> E2 Node
 
-    // Reported list of measurements per UE
-    for (size_t i = 0; i < msg_frm_3->ue_meas_report_lst_len; i++) {
-      // log UE ID
-      ue_id_e2sm_t const ue_id_e2sm = msg_frm_3->meas_report_per_ue[i].ue_meas_report_lst;
-      ue_id_e2sm_e const type = ue_id_e2sm.type;
-      log_ue_id_e2sm[type](ue_id_e2sm);
-
-      // log measurements
-      log_kpm_measurements(&msg_frm_3->meas_report_per_ue[i].ind_msg_format_1);
-      
+    if (ind->msg.type == FORMAT_3_INDICATION_MESSAGE) {
+      log_kpm_ind_msg_frm_3(&ind->msg.frm_3);
+    } else {
+      printf("KPM Indication Message %d logging not yet implemented.\n", ind->msg.type);
     }
     counter++;
   }
@@ -373,7 +381,7 @@ fill_kpm_act_def get_kpm_act_def[END_RIC_SERVICE_REPORT] = {
 };
 
 static
-kpm_sub_data_t gen_kpm_subs(kpm_ran_function_def_t const* ran_func)
+kpm_sub_data_t gen_kpm_subs(kpm_ran_function_def_t const* ran_func, ric_report_style_item_t const* report_item)
 {
   assert(ran_func != NULL);
   assert(ran_func->ric_event_trigger_style_list != NULL);
@@ -392,7 +400,6 @@ kpm_sub_data_t gen_kpm_subs(kpm_ran_function_def_t const* ran_func)
 
   // Multiple Action Definitions in one SUBSCRIPTION message is not supported in this project
   // Multiple REPORT Styles = Multiple Action Definition = Multiple SUBSCRIPTION messages
-  ric_report_style_item_t* const report_item = &ran_func->ric_report_style_list[0];
   ric_service_report_e const report_style_type = report_item->report_style_type;
   *kpm_sub.ad = get_kpm_act_def[report_style_type](report_item);
 
@@ -440,7 +447,7 @@ int main(int argc, char* argv[])
   int rc = pthread_mutex_init(&mtx, &attr);
   assert(rc == 0);
 
-  sm_ans_xapp_t* hndl = calloc(nodes.len, sizeof(sm_ans_xapp_t));
+  sm_ans_xapp_t** hndl = (sm_ans_xapp_t**)calloc(nodes.len, sizeof(sm_ans_xapp_t*));
   assert(hndl != NULL);
 
   ////////////
@@ -455,12 +462,16 @@ int main(int argc, char* argv[])
     assert(n->rf[idx].defn.type == KPM_RAN_FUNC_DEF_E && "KPM is not the received RAN Function");
     // if REPORT Service is supported by E2 node, send SUBSCRIPTION
     // e.g. OAI CU-CP
-    if (n->rf[idx].defn.kpm.ric_report_style_list != NULL) {
+    const size_t sz_report_styles = n->rf[idx].defn.kpm.sz_ric_report_style_list;
+    hndl[i] = calloc(sz_report_styles, sizeof(sm_ans_xapp_t));
+    assert(hndl[i] != NULL);
+    for (size_t j = 0; j < sz_report_styles; j++) {
+      ric_report_style_item_t *report_item = &n->rf[idx].defn.kpm.ric_report_style_list[j];
       // Generate KPM SUBSCRIPTION message
-      kpm_sub_data_t kpm_sub = gen_kpm_subs(&n->rf[idx].defn.kpm);
+      kpm_sub_data_t kpm_sub = gen_kpm_subs(&n->rf[idx].defn.kpm, report_item);
 
-      hndl[i] = report_sm_xapp_api(&n->id, KPM_ran_function, &kpm_sub, sm_cb_kpm);
-      assert(hndl[i].success == true);
+      hndl[i][j] = report_sm_xapp_api(&n->id, KPM_ran_function, &kpm_sub, sm_cb_kpm);
+      assert(hndl[i][j].success == true);
 
       free_kpm_sub_data(&kpm_sub);
     }
@@ -472,9 +483,14 @@ int main(int argc, char* argv[])
   xapp_wait_end_api();
 
   for (int i = 0; i < nodes.len; ++i) {
-    // Remove the handle previously returned
-    if (hndl[i].success == true)
-      rm_report_sm_xapp_api(hndl[i].u.handle);
+    e2_node_connected_xapp_t* n = &nodes.n[i];
+    size_t const idx = find_sm_idx(n->rf, n->len_rf, eq_sm, KPM_ran_function);
+    for (size_t j = 0; j < n->rf[idx].defn.kpm.sz_ric_report_style_list; j++) {
+      // Remove the handle previously returned
+      if (hndl[i][j].success == true)
+        rm_report_sm_xapp_api(hndl[i][j].u.handle);
+    }
+    free(hndl[i]);
   }
   free(hndl);
 
