@@ -97,7 +97,7 @@ void init_kpm_meas_unit_hash_table(void)
 }
 
 static
-char *get_meas_unit(char *name)
+char *get_meas_unit(const char *name)
 {
   return assoc_ht_open_value(&ht, &name);
 }
@@ -149,24 +149,23 @@ log_ue_id log_ue_id_e2sm[END_UE_ID_E2SM] = {
 };
 
 static
-void log_int_value(byte_array_t name, meas_record_lst_t meas_record)
+void log_int_value(const char *name_str, const label_info_lst_t label_info, const meas_record_lst_t meas_record)
 {
-  char *name_str = cp_ba_to_str(name);
   char *name_unit = get_meas_unit(name_str);
-  printf("%s = %d %s\n", name_str, meas_record.int_val, name_unit);
-  free(name_str);
+  if (label_info.noLabel != NULL) {
+    printf("%s = %d %s\n", name_str, meas_record.int_val, name_unit);
+  }
 }
 
 static
-void log_real_value(byte_array_t name, meas_record_lst_t meas_record)
+void log_real_value(const char *name_str, const label_info_lst_t label_info, const meas_record_lst_t meas_record)
 {
-  char *name_str = cp_ba_to_str(name);
+  (void)label_info;
   char *name_unit = get_meas_unit(name_str);
   printf("%s = %.2f %s\n", name_str, meas_record.real_val, name_unit);
-  free(name_str);
 }
 
-typedef void (*log_meas_value)(byte_array_t name, meas_record_lst_t meas_record);
+typedef void (*log_meas_value)(const char *name_str, const label_info_lst_t label_info, const meas_record_lst_t meas_record);
 
 static
 log_meas_value get_meas_value[END_MEAS_VALUE] = {
@@ -176,21 +175,24 @@ log_meas_value get_meas_value[END_MEAS_VALUE] = {
 };
 
 static
-void match_meas_name_type(meas_type_t meas_type, meas_record_lst_t meas_record)
+void match_meas_name_type(const meas_type_t meas_type, const label_info_lst_t label_info, const meas_record_lst_t record_item)
 {
   // Get the value of the Measurement
-  get_meas_value[meas_record.value](meas_type.name, meas_record);
+  char *name_str = cp_ba_to_str(meas_type.name);
+  get_meas_value[record_item.value](name_str, label_info, record_item);
+  free(name_str);
 }
 
 static
-void match_id_meas_type(meas_type_t meas_type, meas_record_lst_t meas_record)
+void match_id_meas_type(const meas_type_t meas_type, const label_info_lst_t label_info, const meas_record_lst_t record_item)
 {
   (void)meas_type;
-  (void)meas_record;
+  (void)label_info;
+  (void)record_item;
   assert(false && "ID Measurement Type not yet supported");
 }
 
-typedef void (*check_meas_type)(meas_type_t meas_type, meas_record_lst_t meas_record);
+typedef void (*check_meas_type)(const meas_type_t meas_type, const label_info_lst_t label_info, const meas_record_lst_t meas_record);
 
 static
 check_meas_type match_meas_type[END_MEAS_TYPE] = {
@@ -207,17 +209,19 @@ void log_kpm_measurements(kpm_ind_msg_format_1_t const* msg_frm_1)
   for (size_t j = 0; j < msg_frm_1->meas_data_lst_len; j++) {
     meas_data_lst_t const data_item = msg_frm_1->meas_data_lst[j];
 
-    for (size_t z = 0; z < data_item.meas_record_len; z++) {
-      meas_type_t const meas_type = msg_frm_1->meas_info_lst[z].meas_type;
-      meas_record_lst_t const record_item = data_item.meas_record_lst[z];
+    for (size_t i = 0; i < msg_frm_1->meas_info_lst_len; i++) {
+      const meas_info_format_1_lst_t info_item = msg_frm_1->meas_info_lst[i];
+      for (size_t z = 0; z < info_item.label_info_lst_len; z++) {
+        const label_info_lst_t label_info = info_item.label_info_lst[z];
+        const meas_record_lst_t record_item = data_item.meas_record_lst[i + z];
 
-      match_meas_type[meas_type.type](meas_type, record_item);
+        match_meas_type[info_item.meas_type.type](info_item.meas_type, label_info, record_item);
 
-      if (data_item.incomplete_flag && *data_item.incomplete_flag == TRUE_ENUM_VALUE)
-        printf("Measurement Record not reliable");
+        if (data_item.incomplete_flag && *data_item.incomplete_flag == TRUE_ENUM_VALUE)
+          printf("Measurement Record not reliable");
+      }
     }
   }
-
 }
 
 static
