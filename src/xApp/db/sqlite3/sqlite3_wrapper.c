@@ -1218,6 +1218,63 @@ ue_id_info_t get_cuup_ue_id(ue_id_e2sm_t ue_id)
   return result;
 }
 
+static
+ue_id_info_t get_ng_enb_ue_id(ue_id_e2sm_t ue_id)
+{
+  ue_id_info_t result = {0};
+
+  snprintf(result.id, sizeof(result.id), "%lu", ue_id.ng_enb.amf_ue_ngap_id);
+  strcpy(result.group, "amf_ue_ngap_id");
+
+  // no RAN UE ID in LTE RAN
+  strcpy(result.ran_ue_id, "NULL");
+
+  return result;
+}
+
+static
+ue_id_info_t get_ng_enb_du_ue_id(ue_id_e2sm_t ue_id)
+{
+  ue_id_info_t result = {0};
+
+  snprintf(result.id, sizeof(result.id), "%u", ue_id.ng_enb_du.ng_enb_cu_ue_w1ap_id);
+  strcpy(result.group, "ng_enb_cu_ue_w1ap_id");
+
+  // no RAN UE ID in LTE RAN
+  strcpy(result.ran_ue_id, "NULL");
+
+  return result;
+}
+
+static
+ue_id_info_t get_en_gnb_ue_id(ue_id_e2sm_t ue_id)
+{
+  ue_id_info_t result = {0};
+
+  snprintf(result.id, sizeof(result.id), "%u", ue_id.en_gnb.enb_ue_x2ap_id);
+  strcpy(result.group, "enb_ue_x2ap_id");
+
+  if (ue_id.en_gnb.ran_ue_id != NULL) {
+    snprintf(result.ran_ue_id, sizeof(result.ran_ue_id), "%lx", *ue_id.en_gnb.ran_ue_id); // RAN UE NGAP ID
+  }
+
+  return result;
+}
+
+static
+ue_id_info_t get_enb_ue_id(ue_id_e2sm_t ue_id)
+{
+  ue_id_info_t result = {0};
+
+  snprintf(result.id, sizeof(result.id), "%u", ue_id.enb.mme_ue_s1ap_id);
+  strcpy(result.group, "mme_ue_s1ap_id");
+
+  // no RAN UE ID in LTE
+  strcpy(result.ran_ue_id, "NULL");
+
+  return result;
+}
+
 typedef ue_id_info_t (*get_ue_id)(ue_id_e2sm_t ue_id);
 
 static
@@ -1225,10 +1282,10 @@ get_ue_id get_ue_id_e2sm[END_UE_ID_E2SM] = {
   get_gnb_ue_id,  // common for gNB-mono, CU and CU-CP
   get_du_ue_id,
   get_cuup_ue_id,
-  NULL,
-  NULL,
-  NULL,
-  NULL,
+  get_ng_enb_ue_id,
+  get_ng_enb_du_ue_id,
+  get_en_gnb_ue_id,
+  get_enb_ue_id
 };
 
 static
