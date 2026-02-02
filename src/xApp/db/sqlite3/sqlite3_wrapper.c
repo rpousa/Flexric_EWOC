@@ -1449,6 +1449,8 @@ void write_rc_stats(sqlite3* db, global_e2_node_id_t const* id, rc_ind_data_t co
     if (param->ran_param_id == E2SM_RC_RS1_RRC_MESSAGE) {
       rrc_msg_ba = param->ran_param_val.flag_false->octet_str_ran;
     } else if (param->ran_param_id == E2SM_RC_RS1_UE_ID) {
+      // at the moment, UE ID not used
+      /*
       UEID_t ue_id_asn = {0};
       UEID_t* src_ref = &ue_id_asn;
 
@@ -1458,8 +1460,7 @@ void write_rc_stats(sqlite3* db, global_e2_node_id_t const* id, rc_ind_data_t co
 
       ue_id = dec_ue_id_asn(&ue_id_asn);
       ASN_STRUCT_RESET(asn_DEF_UEID, &ue_id_asn);
-      // at the moment, UE ID not used
-      free_ue_id_e2sm(&ue_id);
+      */
     }
   }
 
