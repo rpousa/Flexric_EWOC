@@ -1289,6 +1289,20 @@ get_ue_id get_ue_id_e2sm[END_UE_ID_E2SM] = {
 };
 
 static
+char *get_meas_name(meas_type_t meas_type)
+{
+  char* value = NULL;
+  if (meas_type.type == NAME_MEAS_TYPE) {
+    value = cp_ba_to_str(meas_type.name);
+  } else if (meas_type.type == ID_MEAS_TYPE) {
+    value = malloc(sizeof(meas_type.id));
+    sprintf(value, "%u", meas_type.id);
+  }
+
+  return value;
+}
+
+static
 void process_format_1_message(sqlite3* db, global_e2_node_id_t const* id, kpm_ind_msg_t const* msg, uint64_t collectStartTime)
 {
   char buffer[MAX_SQL_LENGTH] = {0};
@@ -1299,7 +1313,7 @@ void process_format_1_message(sqlite3* db, global_e2_node_id_t const* id, kpm_in
 
     for (size_t z = 0; z < frm_1->meas_info_lst_len; z++) {
       const meas_info_format_1_lst_t* meas_info_item = &frm_1->meas_info_lst[z];
-      char *name_str = cp_ba_to_str(meas_info_item->meas_type.name);
+      char *name_str = get_meas_name(meas_info_item->meas_type);
       for (size_t j = 0; j < meas_info_item->label_info_lst_len; j++) {
         meas_record_lst_t* meas_record_item = &meas_data_item->meas_record_lst[z + j];
         to_sql_string_kpm_measRecord(id, name_str, meas_record_item, &meas_info_item->label_info_lst[j],
@@ -1365,7 +1379,7 @@ void process_format_3_message(sqlite3* db, global_e2_node_id_t const* id, kpm_in
       
       for (size_t z = 0; z < frm_1->meas_info_lst_len; z++) {
         const meas_info_format_1_lst_t* meas_info_item = &frm_1->meas_info_lst[z];
-        char *name_str = cp_ba_to_str(meas_info_item->meas_type.name);
+        char *name_str = get_meas_name(meas_info_item->meas_type);
         for (size_t i = 0; i < meas_info_item->label_info_lst_len; i++){
           meas_record_lst_t* meas_record_item = &meas_data_item->meas_record_lst[z + i];
           to_sql_string_kpm_measRecord(id, name_str, meas_record_item, &meas_info_item->label_info_lst[i],
