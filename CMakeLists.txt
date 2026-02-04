@@ -185,6 +185,9 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 if(BUILDING_LIBRARY STREQUAL "STATIC")
   add_compile_options("-W;-Wall;-Wextra;-g;-Wno-unused-result;-Warray-bounds;-Wempty-body;-fstack-protector-strong;-fstack-clash-protection;-D_GLIBCXX_ASSERTIONS") #-fopt-info -fhardened
+  if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
+    add_compile_options("-Wno-unused-parameter;-Wno-unused-but-set-variable;-Wno-unused-variable;-Wno-uninitialized;-Wno-unused-function")
+  endif()
 elseif(BUILDING_LIBRARY STREQUAL "DYNAMIC")
   # -fPIC flag
   set(CMAKE_POSITION_INDEPENDENT_CODE ON)
