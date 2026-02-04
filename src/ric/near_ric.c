@@ -795,7 +795,10 @@ uint16_t fwd_ric_subscription_request(near_ric_t* ric, global_e2_node_id_t const
   assert(f != NULL);
   uint16_t const ric_req_id = ric->req_id++;
 
-  *(uint16_t*)&sr->ric_id.ric_req_id = ric_req_id;
+  {
+    ric_subscription_request_t *mod_sr = (ric_subscription_request_t *)sr;
+    mod_sr->ric_id.ric_req_id = ric_req_id;
+  }
 
 
   // A pending event is created along with a timer of 3000 ms,
@@ -860,7 +863,10 @@ uint16_t fwd_ric_control_request(near_ric_t* ric, global_e2_node_id_t const* id,
   assert(f != NULL);
 
   uint16_t const ric_req_id = ric->req_id++;
-  *(uint16_t*)&cr->ric_id.ric_req_id = ric_req_id;
+  {
+    ric_control_request_t *mod_cr = (ric_control_request_t *)cr;
+    mod_cr->ric_id.ric_req_id = ric_req_id;
+  }
 
   // A pending event is created along with a timer of 3000 ms,
   // after which an event will be generated
