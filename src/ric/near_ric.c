@@ -763,7 +763,7 @@ void load_sm_near_ric(near_ric_t* ric, const char* file_name)
     full_path[strlen(full_path)] = '/'; 
   
   char* ptr = full_path + strlen(full_path);
-  strncat(ptr, file_name, strlen(file_name));
+  strcat(ptr, file_name);
 
   load_plugin_ric(&ric->plugin, full_path);
 
