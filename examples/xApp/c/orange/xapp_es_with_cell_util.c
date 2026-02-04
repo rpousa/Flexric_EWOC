@@ -154,6 +154,7 @@ UEid(IMSI), cellID
 
 */
 
+static
 struct SINR_Map* add_SINR(const uint16_t cellID) 
 {
   assert(cellID != 0);
@@ -170,6 +171,7 @@ struct SINR_Map* add_SINR(const uint16_t cellID)
 }
 
 // Serving msg
+static
 void add_UE(struct SINR_Map* cell, const uint16_t ueID, const double sinr) 
 {
   assert(cell != NULL);
@@ -198,6 +200,7 @@ void add_UE(struct SINR_Map* cell, const uint16_t ueID, const double sinr)
   cell->numOfConnectedUEs += 1;
 }
 
+static
 struct SINRServingValues* get_UE(const uint16_t cellID, const uint16_t ueID) 
 {
   if (cells_sinr_map[cellID].is_registered) {
@@ -232,6 +235,7 @@ DoRecvLteMmWaveHandoverCompleted
 
 #define MAX_NUM_OF_RIC_INDICATIONS 5
 
+static
 void add_neighCell(struct SINRServingValues* UE, const uint16_t neighCellID, const double sinr) 
 {
   assert(UE != NULL);
@@ -278,6 +282,7 @@ void add_neighCell(struct SINRServingValues* UE, const uint16_t neighCellID, con
   }
 }
 
+static
 uint16_t getTargetCellID(callback_data_t data)
 {
   assert(data.neighCells != NULL);
@@ -337,6 +342,7 @@ struct InfoObj
 };
 
 // struct InfoObj parseStr()
+static
 struct InfoObj parseServingMsg(const char* msg) 
 {
   struct InfoObj info;
@@ -351,6 +357,7 @@ struct InfoObj parseServingMsg(const char* msg)
   return info;
 }
 
+static
 struct InfoObj parseNeighMsg(const char* msg) 
 {
   struct InfoObj info;
@@ -365,12 +372,14 @@ struct InfoObj parseNeighMsg(const char* msg)
   return info;
 }
 
+static
 bool isMeasNameContains(const char* meas_name, const char* name) 
 {
   return strncmp(meas_name, name, strlen(name)) == 0;
 }
 
-static void log_kpm_measurements(kpm_ind_msg_format_1_t const* msg_frm_1) 
+static
+void log_kpm_measurements(kpm_ind_msg_format_1_t const* msg_frm_1)
 {
   assert(msg_frm_1->meas_info_lst_len > 0 && "Cannot correctly print measurements");
 
@@ -422,7 +431,8 @@ static void log_kpm_measurements(kpm_ind_msg_format_1_t const* msg_frm_1)
   }
 }
 
-static void sm_cb_kpm(sm_ag_if_rd_t const* rd) 
+static
+void sm_cb_kpm(sm_ag_if_rd_t const* rd)
 {
   assert(rd != NULL);
   assert(rd->type == INDICATION_MSG_AGENT_IF_ANS_V0);
@@ -451,7 +461,8 @@ static void sm_cb_kpm(sm_ag_if_rd_t const* rd)
   }
 }
 
-static test_info_lst_t filter_predicate(test_cond_type_e type, test_cond_e cond, int value) 
+static
+test_info_lst_t filter_predicate(test_cond_type_e type, test_cond_e cond, int value)
 {
   test_info_lst_t dst = {0};
 
@@ -476,7 +487,8 @@ static test_info_lst_t filter_predicate(test_cond_type_e type, test_cond_e cond,
   return dst;
 }
 
-static label_info_lst_t fill_kpm_label(void) 
+static
+label_info_lst_t fill_kpm_label(void)
 {
   label_info_lst_t label_item = {0};
 
@@ -486,7 +498,8 @@ static label_info_lst_t fill_kpm_label(void)
   return label_item;
 }
 
-static kpm_act_def_format_1_t fill_act_def_frm_1(ric_report_style_item_t const* report_item) 
+static
+kpm_act_def_format_1_t fill_act_def_frm_1(ric_report_style_item_t const* report_item)
 {
   assert(report_item != NULL);
 
@@ -529,7 +542,8 @@ static kpm_act_def_format_1_t fill_act_def_frm_1(ric_report_style_item_t const* 
   return ad_frm_1;
 }
 
-static kpm_act_def_t fill_report_style_4(ric_report_style_item_t const* report_item) 
+static
+kpm_act_def_t fill_report_style_4(ric_report_style_item_t const* report_item)
 {
   assert(report_item != NULL);
   assert(report_item->act_def_format_type == FORMAT_4_ACTION_DEFINITION);
@@ -557,7 +571,8 @@ static kpm_act_def_t fill_report_style_4(ric_report_style_item_t const* report_i
 
 typedef kpm_act_def_t (*fill_kpm_act_def)(ric_report_style_item_t const* report_item);
 
-static fill_kpm_act_def get_kpm_act_def[END_RIC_SERVICE_REPORT] = 
+static
+fill_kpm_act_def get_kpm_act_def[END_RIC_SERVICE_REPORT] =
 {
     NULL,
     NULL,
@@ -566,7 +581,8 @@ static fill_kpm_act_def get_kpm_act_def[END_RIC_SERVICE_REPORT] =
     NULL,
 };
 
-static kpm_sub_data_t gen_kpm_subs(kpm_ran_function_def_t const* ran_func) 
+static
+kpm_sub_data_t gen_kpm_subs(kpm_ran_function_def_t const* ran_func)
 {
   assert(ran_func != NULL);
   assert(ran_func->ric_event_trigger_style_list != NULL);
@@ -592,7 +608,8 @@ static kpm_sub_data_t gen_kpm_subs(kpm_ran_function_def_t const* ran_func)
   return kpm_sub;
 }
 
-static size_t find_sm_idx(sm_ran_function_t* rf, size_t sz, bool (*f)(sm_ran_function_t const*, int const),
+static
+size_t find_sm_idx(sm_ran_function_t* rf, size_t sz, bool (*f)(sm_ran_function_t const*, int const),
                           int const id) 
 {
   for (size_t i = 0; i < sz; i++) 
@@ -606,8 +623,10 @@ static size_t find_sm_idx(sm_ran_function_t* rf, size_t sz, bool (*f)(sm_ran_fun
 }
 
 //*************************************************************** *//
-static e2sm_rc_ctrl_hdr_frmt_1_t gen_rc_ctrl_hdr_frmt_1(ue_id_e2sm_t ue_id, uint32_t ric_style_type,
-                                                         uint16_t ctrl_act_id) {
+static
+e2sm_rc_ctrl_hdr_frmt_1_t gen_rc_ctrl_hdr_frmt_1(ue_id_e2sm_t ue_id, uint32_t ric_style_type,
+                                                         uint16_t ctrl_act_id)
+{
   e2sm_rc_ctrl_hdr_frmt_1_t dst = {0};
 
   // 6.2.2.6
@@ -619,7 +638,8 @@ static e2sm_rc_ctrl_hdr_frmt_1_t gen_rc_ctrl_hdr_frmt_1(ue_id_e2sm_t ue_id, uint
   return dst;
 }
 
-static e2sm_rc_ctrl_hdr_t gen_rc_ctrl_hdr(e2sm_rc_ctrl_hdr_e hdr_frmt, ue_id_e2sm_t ue_id,
+static
+e2sm_rc_ctrl_hdr_t gen_rc_ctrl_hdr(e2sm_rc_ctrl_hdr_e hdr_frmt, ue_id_e2sm_t ue_id,
                                            uint32_t ric_style_type, uint16_t ctrl_act_id) 
 {
   e2sm_rc_ctrl_hdr_t dst = {0};
@@ -635,7 +655,8 @@ static e2sm_rc_ctrl_hdr_t gen_rc_ctrl_hdr(e2sm_rc_ctrl_hdr_e hdr_frmt, ue_id_e2s
   return dst;
 }
 
-static void set_EUTRA_CGI(seq_ran_param_t* EUTRA_CGI, const char targetcell) 
+static
+void set_EUTRA_CGI(seq_ran_param_t* EUTRA_CGI, const char targetcell)
 {
   // Input validation
   assert(EUTRA_CGI != NULL);
@@ -660,7 +681,8 @@ static void set_EUTRA_CGI(seq_ran_param_t* EUTRA_CGI, const char targetcell)
   EUTRA_CGI->ran_param_val.flag_false->octet_str_ran.buf = target_ba.buf;
 }
 
-static void gen_Target_Primary_Cell_ID(seq_ran_param_t* Target_Primary_Cell_ID, char targetcell) 
+static
+void gen_Target_Primary_Cell_ID(seq_ran_param_t* Target_Primary_Cell_ID, char targetcell)
 {
   // Target Primary Cell ID, STRUCTURE (len 1)
 
@@ -734,7 +756,8 @@ static void gen_Target_Primary_Cell_ID(seq_ran_param_t* Target_Primary_Cell_ID, 
   return;
 }
 
-static void gen_List_of_PDU_sessions_for_handover(seq_ran_param_t* List_PDU_sessions_ho) 
+static
+void gen_List_of_PDU_sessions_for_handover(seq_ran_param_t* List_PDU_sessions_ho)
 {
   int num_PDU_session = 1;
 
@@ -802,7 +825,8 @@ static void gen_List_of_PDU_sessions_for_handover(seq_ran_param_t* List_PDU_sess
   return;
 }
 
-static void gen_List_of_DRBs_for_handover(seq_ran_param_t* List_DRBs_ho) 
+static
+void gen_List_of_DRBs_for_handover(seq_ran_param_t* List_DRBs_ho)
 {
   int num_DRBs = 1;
   // List of DRBs for handover, LIST (len 1)
@@ -864,7 +888,8 @@ static void gen_List_of_DRBs_for_handover(seq_ran_param_t* List_DRBs_ho)
   return;
 }
 
-static void gen_List_of_Secondary_cells_to_be_setup(seq_ran_param_t* List_num_2ndCells) 
+static
+void gen_List_of_Secondary_cells_to_be_setup(seq_ran_param_t* List_num_2ndCells)
 {
   int num_2ndCells = 1;
   // List of Secondary cells to be setup, LIST (len 1)
@@ -898,7 +923,8 @@ static void gen_List_of_Secondary_cells_to_be_setup(seq_ran_param_t* List_num_2n
   return;
 }
 
-static e2sm_rc_ctrl_msg_frmt_1_t gen_rc_ctrl_msg_frmt_1_Handover_Control(char targetcell) 
+static
+e2sm_rc_ctrl_msg_frmt_1_t gen_rc_ctrl_msg_frmt_1_Handover_Control(char targetcell)
 {
   e2sm_rc_ctrl_msg_frmt_1_t dst = {0};
   // 8.4.4.1
@@ -940,7 +966,8 @@ static e2sm_rc_ctrl_msg_frmt_1_t gen_rc_ctrl_msg_frmt_1_Handover_Control(char ta
   return dst;
 }
 
-static e2sm_rc_ctrl_msg_frmt_1_t gen_rc_ctrl_msg_frmt_1_cell_trigger(char targetcell) 
+static
+e2sm_rc_ctrl_msg_frmt_1_t gen_rc_ctrl_msg_frmt_1_cell_trigger(char targetcell)
 {
   e2sm_rc_ctrl_msg_frmt_1_t dst = {0};
   // 8.4.4.1
@@ -959,7 +986,8 @@ static e2sm_rc_ctrl_msg_frmt_1_t gen_rc_ctrl_msg_frmt_1_cell_trigger(char target
   return dst;
 }
 
-static e2sm_rc_ctrl_msg_t gen_handover_rc_ctrl_msg(e2sm_rc_ctrl_msg_e msg_frmt, uint8_t targetcell) 
+static
+e2sm_rc_ctrl_msg_t gen_handover_rc_ctrl_msg(e2sm_rc_ctrl_msg_e msg_frmt, uint8_t targetcell)
 {
   e2sm_rc_ctrl_msg_t dst = {0};
 
@@ -974,7 +1002,8 @@ static e2sm_rc_ctrl_msg_t gen_handover_rc_ctrl_msg(e2sm_rc_ctrl_msg_e msg_frmt, 
   return dst;
 }
 
-static e2sm_rc_ctrl_msg_t gen_cell_trigger_rc_ctrl_msg(e2sm_rc_ctrl_msg_e msg_frmt, char targetcell) 
+static
+e2sm_rc_ctrl_msg_t gen_cell_trigger_rc_ctrl_msg(e2sm_rc_ctrl_msg_e msg_frmt, char targetcell)
 {
   e2sm_rc_ctrl_msg_t dst = {0};
 
@@ -989,7 +1018,8 @@ static e2sm_rc_ctrl_msg_t gen_cell_trigger_rc_ctrl_msg(e2sm_rc_ctrl_msg_e msg_fr
   return dst;
 }
 
-static ue_id_e2sm_t gen_rc_ue_id(ue_id_e2sm_e type, int ueid) 
+static
+ue_id_e2sm_t gen_rc_ue_id(ue_id_e2sm_e type, int ueid)
 {
   ue_id_e2sm_t ue_id = {0};
   if (type == GNB_UE_ID_E2SM) {
@@ -1003,7 +1033,8 @@ static ue_id_e2sm_t gen_rc_ue_id(ue_id_e2sm_e type, int ueid)
   return ue_id;
 }
 
-static bool eq_sm(sm_ran_function_t const* elem, int const id) 
+static
+bool eq_sm(sm_ran_function_t const* elem, int const id)
 {
   if (elem->id == id)
     return true;
@@ -1011,6 +1042,7 @@ static bool eq_sm(sm_ran_function_t const* elem, int const id)
   return false;
 }
 
+static
 void forEachCell(Callback targetCellFinding, Callback cbHOAction, Callback cbSwitchOffAction, callback_data_t data) 
 {
   static bool processed_cells[MAX_REGISTERED_CELLS] = {false};
@@ -1122,6 +1154,7 @@ void forEachCell(Callback targetCellFinding, Callback cbHOAction, Callback cbSwi
 
 // void doHandoverAction(const e2_node_arr_xapp_t * nodes, const int ueID, const uint8_t frmCurntCell, const uint8_t
 // toTargetCell) {
+static
 uint16_t doHandoverAction(callback_data_t data) 
 {
   char trgtCell = '0' + data.toTargetCell;
@@ -1157,6 +1190,7 @@ uint16_t doHandoverAction(callback_data_t data)
   return handover_sent ? 1 : 0;
 }
 
+static
 uint16_t switchOffCurrentCell(callback_data_t data)
 {
   rc_ctrl_req_data_t rc_ctrl = {0};
