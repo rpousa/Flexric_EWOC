@@ -157,8 +157,7 @@ UEid(IMSI), cellID
 struct SINR_Map* add_SINR(const uint16_t cellID) 
 {
   assert(cellID != 0);
-  if (cells_sinr_map[cellID].sinrMap == NULL && !cells_sinr_map[cellID].is_registered) 
-  {
+  if (cells_sinr_map[cellID].sinrMap == NULL && !cells_sinr_map[cellID].is_registered) {
     cells_sinr_map[cellID].sinrMap = (struct SINR_Map*)calloc(1, sizeof(struct SINR_Map));
     cells_sinr_map[cellID].is_registered = true;
     cells_sinr_map[cellID].sinrMap->cellID = cellID;
@@ -260,8 +259,7 @@ void add_neighCell(struct SINRServingValues* UE, const uint16_t neighCellID, con
   // Update existing neighbor cell
   else {
     // Track measurements until we have MAX_NUM_OF_RIC_INDICATIONS samples
-    if (neighCell->counter < MAX_NUM_OF_RIC_INDICATIONS) 
-    {
+    if (neighCell->counter < MAX_NUM_OF_RIC_INDICATIONS) {
       // Update running sum
       neighCell->sinr = ((neighCell->sinr * neighCell->counter) + sinr) / (neighCell->counter + 1);
       neighCell->counter++;
@@ -294,13 +292,11 @@ uint16_t getTargetCellID(callback_data_t data)
   for (int i = 0; i < MAX_REGISTERED_NEIGHBOURS; i++)
   {
     if (data.neighCells[i].is_available && 
-        data.neighCells[i].counter >= MAX_NUM_OF_RIC_INDICATIONS) 
-    {
+        data.neighCells[i].counter >= MAX_NUM_OF_RIC_INDICATIONS) {
       
       // Skip cells marked for shutdown
       if (cells_sinr_map[i].sinrMap != NULL && 
-          cells_sinr_map[i].sinrMap->pending_shutdown) 
-          {
+          cells_sinr_map[i].sinrMap->pending_shutdown) {
         printf("Skipping Cell %d: marked for shutdown\n", i);
         continue;
       }
@@ -308,8 +304,7 @@ uint16_t getTargetCellID(callback_data_t data)
       printf("Evaluating Cell %d: SINR %.2f dB\n", i, data.neighCells[i].sinr);
 
       if (data.neighCells[i].sinr > MIN_SINR && 
-          data.neighCells[i].sinr > max_sinr) 
-     {
+          data.neighCells[i].sinr > max_sinr) {
         max_sinr = data.neighCells[i].sinr;
         targetCell = i;
         printf("Found better cell: %d (SINR: %.2f dB)\n", targetCell, max_sinr);
@@ -317,8 +312,7 @@ uint16_t getTargetCellID(callback_data_t data)
     }
   }
 
-  if (targetCell != 0) 
-  {
+  if (targetCell != 0) {
     printf("Selected Target Cell: %d (SINR: %.2f dB)\n", targetCell, max_sinr);
   } else 
   {
@@ -382,8 +376,7 @@ static void log_kpm_measurements(kpm_ind_msg_format_1_t const* msg_frm_1)
 
   // assert(msg_frm_1->meas_info_lst_len == msg_frm_1->meas_data_lst_len && "meas_info_lst_len not equal
   // meas_data_lst_len");
-  if (msg_frm_1->meas_info_lst_len != msg_frm_1->meas_data_lst_len) 
-  {
+  if (msg_frm_1->meas_info_lst_len != msg_frm_1->meas_data_lst_len) {
     printf("Error: meas_info_lst_len= (%ld) not equal meas_data_lst_len= (%ld)\n", msg_frm_1->meas_info_lst_len,
            msg_frm_1->meas_data_lst_len);
     return;
@@ -398,11 +391,9 @@ static void log_kpm_measurements(kpm_ind_msg_format_1_t const* msg_frm_1)
     for (size_t j = 0; j < data_item.meas_record_len;) {
       meas_record_lst_t const record_item = data_item.meas_record_lst[j];
 
-      if (meas_type.type == NAME_MEAS_TYPE) 
-      {
+      if (meas_type.type == NAME_MEAS_TYPE) {
         char *meas_name_str = cp_ba_to_str(meas_type.name);
-        if (isMeasNameContains(meas_name_str, "L3servingSINR3gpp_cell_"))
-        {
+        if (isMeasNameContains(meas_name_str, "L3servingSINR3gpp_cell_")) {
           struct InfoObj info = parseServingMsg(meas_name_str);
           double sinr = record_item.real_val;
 
@@ -411,8 +402,7 @@ static void log_kpm_measurements(kpm_ind_msg_format_1_t const* msg_frm_1)
 
           printf("Serving Cell %d - UE %d: %.2f dB\n", info.cellID, info.ueID, sinr);
 
-        } else if (isMeasNameContains(meas_name_str, "L3neighSINRListOf_UEID_"))
-        {
+        } else if (isMeasNameContains(meas_name_str, "L3neighSINRListOf_UEID_")) {
           struct InfoObj info = parseNeighMsg(meas_name_str);
 
           meas_record_lst_t const sinr = record_item;
@@ -652,8 +642,7 @@ static void set_EUTRA_CGI(seq_ran_param_t* EUTRA_CGI, const char targetcell)
   assert(targetcell >= '0' && targetcell <= '9');
 
   // Validate flag_false is allocated
-  if (EUTRA_CGI->ran_param_val.flag_false == NULL) 
-  {
+  if (EUTRA_CGI->ran_param_val.flag_false == NULL) {
     EUTRA_CGI->ran_param_val.flag_false = calloc(1, sizeof(ran_parameter_value_t));
     assert(EUTRA_CGI->ran_param_val.flag_false != NULL && "Memory exhausted");
   }
@@ -974,8 +963,7 @@ static e2sm_rc_ctrl_msg_t gen_handover_rc_ctrl_msg(e2sm_rc_ctrl_msg_e msg_frmt, 
 {
   e2sm_rc_ctrl_msg_t dst = {0};
 
-  if (msg_frmt == FORMAT_1_E2SM_RC_CTRL_MSG) 
-  {
+  if (msg_frmt == FORMAT_1_E2SM_RC_CTRL_MSG) {
     dst.format = msg_frmt;
     dst.frmt_1 = gen_rc_ctrl_msg_frmt_1_Handover_Control(targetcell);
   } else 
@@ -1004,8 +992,7 @@ static e2sm_rc_ctrl_msg_t gen_cell_trigger_rc_ctrl_msg(e2sm_rc_ctrl_msg_e msg_fr
 static ue_id_e2sm_t gen_rc_ue_id(ue_id_e2sm_e type, int ueid) 
 {
   ue_id_e2sm_t ue_id = {0};
-  if (type == GNB_UE_ID_E2SM) 
-  {
+  if (type == GNB_UE_ID_E2SM) {
     ue_id.type = GNB_UE_ID_E2SM;
     ue_id.gnb.ran_ue_id = (uint64_t*)malloc(sizeof(uint64_t));
     *(ue_id.gnb.ran_ue_id) = ueid;
@@ -1037,14 +1024,12 @@ void forEachCell(Callback targetCellFinding, Callback cbHOAction, Callback cbSwi
     if (cells_sinr_map[i].sinrMap != NULL && 
         cells_sinr_map[i].is_registered && 
         !processed_cells[i] &&
-        !cells_sinr_map[i].sinrMap->pending_shutdown) 
-    {
+        !cells_sinr_map[i].sinrMap->pending_shutdown) {
       
       struct SINR_Map* cell = cells_sinr_map[i].sinrMap;
       
       // Check if cell meets shutdown criteria (low utilization, etc)
-      if (cell->numOfConnectedUEs <= 1) 
-      { // Example criteria
+      if (cell->numOfConnectedUEs <= 1) { // Example criteria
         cell->pending_shutdown = true;
         cell->shutdown_start_time = time(NULL);
         printf("Cell %d marked for shutdown\n", cell->cellID);
@@ -1057,8 +1042,7 @@ void forEachCell(Callback targetCellFinding, Callback cbHOAction, Callback cbSwi
   {
     if (cells_sinr_map[i].sinrMap != NULL && 
         cells_sinr_map[i].is_registered && 
-        !processed_cells[i]) 
-    {
+        !processed_cells[i]) {
       
       struct SINR_Map* cell = cells_sinr_map[i].sinrMap;
       
@@ -1105,15 +1089,13 @@ void forEachCell(Callback targetCellFinding, Callback cbHOAction, Callback cbSwi
       bool timeout_reached = (current_time - cell->shutdown_start_time) > SHUTDOWN_TIMEOUT_SEC;
       
       if ((handovers_needed > 0 && handovers_needed == handovers_completed) || 
-          (timeout_reached && handovers_completed == cell->numOfConnectedUEs)) 
-          {
+          (timeout_reached && handovers_completed == cell->numOfConnectedUEs)) {
         
         printf("All handovers complete (%ld/%ld) or timeout reached for cell %d\n",
                handovers_completed, handovers_needed, cell->cellID);
         
         data.frmCurntCell = cell->cellID;
-        if (cbSwitchOffAction(data)) 
-        {
+        if (cbSwitchOffAction(data)) {
           // Clean up cell data structures
           if (cell->connectedUEs != NULL) {
             for (int j = 0; j < MAX_REGISTERED_UES; j++) {
@@ -1145,8 +1127,7 @@ uint16_t doHandoverAction(callback_data_t data)
   char trgtCell = '0' + data.toTargetCell;
   printf("[xApp]: data.toTargetCell= %d ..\n", data.toTargetCell);
 
-  if (!(trgtCell > '0' && trgtCell <= '9')) 
-  {
+  if (!(trgtCell > '0' && trgtCell <= '9')) {
     printf("[xApp]: Invalid target cell %c\n", trgtCell);
     return 0;
   }
@@ -1166,8 +1147,7 @@ uint16_t doHandoverAction(callback_data_t data)
   {
     sm_ans_xapp_t ans = control_sm_xapp_api(&(*data.nodes).n[i].id, SM_RC_ID, &rc_ctrl);
 
-    if (ans.success) 
-    {
+    if (ans.success) {
       handover_sent = true;
       printf("[xApp]: Handover request sent successfully to node %zu\n", i);
     }
@@ -1219,8 +1199,7 @@ int main(int argc, char* argv[])
     e2_node_connected_xapp_t* n = &nodes.n[i];
     size_t const idx = find_sm_idx(n->rf, n->len_rf, eq_sm, KPM_ran_function);
 
-    if (n->rf[idx].defn.kpm.ric_report_style_list != NULL) 
-    {
+    if (n->rf[idx].defn.kpm.ric_report_style_list != NULL) {
       kpm_sub_data_t kpm_sub = gen_kpm_subs(&n->rf[idx].defn.kpm);
       hndl[i] = report_sm_xapp_api(&n->id, KPM_ran_function, &kpm_sub, sm_cb_kpm);
       assert(hndl[i].success == true);
