@@ -1218,6 +1218,63 @@ ue_id_info_t get_cuup_ue_id(ue_id_e2sm_t ue_id)
   return result;
 }
 
+static
+ue_id_info_t get_ng_enb_ue_id(ue_id_e2sm_t ue_id)
+{
+  ue_id_info_t result = {0};
+
+  snprintf(result.id, sizeof(result.id), "%lu", ue_id.ng_enb.amf_ue_ngap_id);
+  strcpy(result.group, "amf_ue_ngap_id");
+
+  // no RAN UE ID in LTE RAN
+  strcpy(result.ran_ue_id, "NULL");
+
+  return result;
+}
+
+static
+ue_id_info_t get_ng_enb_du_ue_id(ue_id_e2sm_t ue_id)
+{
+  ue_id_info_t result = {0};
+
+  snprintf(result.id, sizeof(result.id), "%u", ue_id.ng_enb_du.ng_enb_cu_ue_w1ap_id);
+  strcpy(result.group, "ng_enb_cu_ue_w1ap_id");
+
+  // no RAN UE ID in LTE RAN
+  strcpy(result.ran_ue_id, "NULL");
+
+  return result;
+}
+
+static
+ue_id_info_t get_en_gnb_ue_id(ue_id_e2sm_t ue_id)
+{
+  ue_id_info_t result = {0};
+
+  snprintf(result.id, sizeof(result.id), "%u", ue_id.en_gnb.enb_ue_x2ap_id);
+  strcpy(result.group, "enb_ue_x2ap_id");
+
+  if (ue_id.en_gnb.ran_ue_id != NULL) {
+    snprintf(result.ran_ue_id, sizeof(result.ran_ue_id), "%lx", *ue_id.en_gnb.ran_ue_id); // RAN UE NGAP ID
+  }
+
+  return result;
+}
+
+static
+ue_id_info_t get_enb_ue_id(ue_id_e2sm_t ue_id)
+{
+  ue_id_info_t result = {0};
+
+  snprintf(result.id, sizeof(result.id), "%u", ue_id.enb.mme_ue_s1ap_id);
+  strcpy(result.group, "mme_ue_s1ap_id");
+
+  // no RAN UE ID in LTE
+  strcpy(result.ran_ue_id, "NULL");
+
+  return result;
+}
+
 typedef ue_id_info_t (*get_ue_id)(ue_id_e2sm_t ue_id);
 
 static
@@ -1225,11 +1282,25 @@ get_ue_id get_ue_id_e2sm[END_UE_ID_E2SM] = {
   get_gnb_ue_id,  // common for gNB-mono, CU and CU-CP
   get_du_ue_id,
   get_cuup_ue_id,
-  NULL,
-  NULL,
-  NULL,
-  NULL,
+  get_ng_enb_ue_id,
+  get_ng_enb_du_ue_id,
+  get_en_gnb_ue_id,
+  get_enb_ue_id
 };
+
+static
+char *get_meas_name(meas_type_t meas_type)
+{
+  char* value = NULL;
+  if (meas_type.type == NAME_MEAS_TYPE) {
+    value = cp_ba_to_str(meas_type.name);
+  } else if (meas_type.type == ID_MEAS_TYPE) {
+    value = malloc(sizeof(meas_type.id));
+    sprintf(value, "%u", meas_type.id);
+  }
+
+  return value;
+}
 
 static
 void process_format_1_message(sqlite3* db, global_e2_node_id_t const* id, kpm_ind_msg_t const* msg, uint64_t collectStartTime)
@@ -1242,7 +1313,7 @@ void process_format_1_message(sqlite3* db, global_e2_node_id_t const* id, kpm_in
 
     for (size_t z = 0; z < frm_1->meas_info_lst_len; z++) {
       const meas_info_format_1_lst_t* meas_info_item = &frm_1->meas_info_lst[z];
-      char *name_str = cp_ba_to_str(meas_info_item->meas_type.name);
+      char *name_str = get_meas_name(meas_info_item->meas_type);
       for (size_t j = 0; j < meas_info_item->label_info_lst_len; j++) {
         meas_record_lst_t* meas_record_item = &meas_data_item->meas_record_lst[z + j];
         to_sql_string_kpm_measRecord(id, name_str, meas_record_item, &meas_info_item->label_info_lst[j],
@@ -1308,7 +1379,7 @@ void process_format_3_message(sqlite3* db, global_e2_node_id_t const* id, kpm_in
       
       for (size_t z = 0; z < frm_1->meas_info_lst_len; z++) {
         const meas_info_format_1_lst_t* meas_info_item = &frm_1->meas_info_lst[z];
-        char *name_str = cp_ba_to_str(meas_info_item->meas_type.name);
+        char *name_str = get_meas_name(meas_info_item->meas_type);
         for (size_t i = 0; i < meas_info_item->label_info_lst_len; i++){
           meas_record_lst_t* meas_record_item = &meas_data_item->meas_record_lst[z + i];
           to_sql_string_kpm_measRecord(id, name_str, meas_record_item, &meas_info_item->label_info_lst[i],
@@ -1378,6 +1449,8 @@ void write_rc_stats(sqlite3* db, global_e2_node_id_t const* id, rc_ind_data_t co
     if (param->ran_param_id == E2SM_RC_RS1_RRC_MESSAGE) {
       rrc_msg_ba = param->ran_param_val.flag_false->octet_str_ran;
     } else if (param->ran_param_id == E2SM_RC_RS1_UE_ID) {
+      // at the moment, UE ID not used
+      /*
       UEID_t ue_id_asn = {0};
       UEID_t* src_ref = &ue_id_asn;
 
@@ -1387,8 +1460,7 @@ void write_rc_stats(sqlite3* db, global_e2_node_id_t const* id, rc_ind_data_t co
 
       ue_id = dec_ue_id_asn(&ue_id_asn);
       ASN_STRUCT_RESET(asn_DEF_UEID, &ue_id_asn);
-      // at the moment, UE ID not used
-      free_ue_id_e2sm(&ue_id);
+      */
     }
   }
 
