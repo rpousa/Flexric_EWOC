@@ -612,6 +612,7 @@ static size_t find_sm_idx(sm_ran_function_t* rf, size_t sz, bool (*f)(sm_ran_fun
   }
 
   assert(0 != 0 && "SM ID could not be found in the RAN Function List");
+  return 0;
 }
 
 //*************************************************************** *//

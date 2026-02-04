@@ -2308,6 +2308,7 @@ E2AP_PDU_t* e2ap_enc_service_update_failure_asn_pdu(const ric_service_update_fai
   return pdu;
 
 */
+  return NULL;
 }
 
 

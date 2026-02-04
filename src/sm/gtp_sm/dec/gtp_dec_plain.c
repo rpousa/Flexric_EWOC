@@ -97,6 +97,8 @@ gtp_call_proc_id_t gtp_dec_call_proc_id_plain(size_t len, uint8_t const call_pro
 {
   assert(0!=0 && "Not implemented");
   assert(call_proc_id != NULL);
+  gtp_call_proc_id_t proc_id = {0};
+  return proc_id;
 }
 
 gtp_ctrl_hdr_t gtp_dec_ctrl_hdr_plain(size_t len, uint8_t const ctrl_hdr[len])
@@ -119,11 +121,15 @@ gtp_ctrl_out_t gtp_dec_ctrl_out_plain(size_t len, uint8_t const ctrl_out[len])
 {
   assert(0!=0 && "Not implemented");
   assert(ctrl_out!= NULL);
+  gtp_ctrl_out_t out = {0};
+  return out;
 }
 
 gtp_func_def_t gtp_dec_func_def_plain(size_t len, uint8_t const func_def[len])
 {
   assert(0!=0 && "Not implemented");
   assert(func_def != NULL);
+  gtp_func_def_t def = {0};
+  return def;
 }
 

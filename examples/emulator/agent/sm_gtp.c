@@ -31,5 +31,7 @@ sm_ag_if_ans_t write_ctrl_gtp_sm(void const* src)
 {
   assert(src != NULL);
   assert(0 !=0 && "Not supported");
+  sm_ag_if_ans_t ans = {0};
+  return ans;
 }
 

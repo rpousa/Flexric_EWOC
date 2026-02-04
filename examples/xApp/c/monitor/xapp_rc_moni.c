@@ -616,6 +616,7 @@ size_t find_sm_idx(sm_ran_function_t* rf, size_t sz, bool (*f)(sm_ran_function_t
   }
 
   assert(0 != 0 && "SM ID could not be found in the RAN Function List");
+  return 0;
 }
 
 static ran_func_def_report_t *get_rc_report_cap(const e2_node_connected_xapp_t *n, const int RC_ran_function)
