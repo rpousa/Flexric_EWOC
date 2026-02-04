@@ -15,6 +15,8 @@
 #include "../../sm/pdcp_sm/ie/pdcp_data_ie.h"
 #include "../../sm/slice_sm/ie/slice_data_ie.h"
 #include "../../sm/gtp_sm/ie/gtp_data_ie.h"
+// #include "../../sm/kpm_sm/kpm_data_ie_wrapper.h"
+
 
 //////////////////////////////////////
 // General    
@@ -163,5 +165,24 @@ int report_gtp_sm(global_e2_node_id_t* id, Interval inter, gtp_cb* handler);
 
 void rm_report_gtp_sm(int);
 
-#endif
 
+// //////////////////////////////////////
+// // KPM SM
+// /////////////////////////////////////
+
+// struct swig_kpm_ind_msg_t{
+//   std::vector<kpm_t_stats_t> gtp_stats; 
+//   int64_t tstamp;
+// };
+
+// struct kpm_cb
+// {
+//   virtual void handle(swig_kpm_ind_msg_t* a) = 0;
+//     virtual ~kpm_cb() {}
+// };
+
+// int report_kpm_sm(global_e2_node_id_t* id, Interval inter, kpm_cb* handler);
+
+// void rm_report_kpm_sm(int);
+
+#endif

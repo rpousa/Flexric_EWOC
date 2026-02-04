@@ -22,12 +22,13 @@
   #include "../../lib/e2ap/v3_01/e2ap_types/common/e2ap_ran_function.h"
 #endif
 
- #include "../../util/byte_array.h"
+  #include "../../util/byte_array.h"
   #include "../../sm/mac_sm/ie/mac_data_ie.h"
   #include "../../sm/rlc_sm/ie/rlc_data_ie.h"
   #include "../../sm/pdcp_sm/ie/pdcp_data_ie.h"
   #include "../../sm/slice_sm/ie/slice_data_ie.h"
   #include "../../sm/gtp_sm/ie/gtp_data_ie.h"
+  // #include "../../sm/kpm_sm/kpm_data_ie_wrapper.h"
 %}
 
 #ifdef SWIGPYTHON
@@ -94,6 +95,7 @@
 %feature("director") pdcp_cb;
 %feature("director") slice_cb;
 %feature("director") gtp_cb;
+// %feature("director") kpm_cb;
 
 namespace std {
   %template(IntVector) vector<int>;
@@ -141,4 +143,4 @@ namespace std {
 %include "../../sm/pdcp_sm/ie/pdcp_data_ie.h"
 %include "../../sm/slice_sm/ie/slice_data_ie.h"
 %include "../../sm/gtp_sm/ie/gtp_data_ie.h"
-
+// %include "../../sm/kpm_sm/kpm_data_ie_wrapper.h"

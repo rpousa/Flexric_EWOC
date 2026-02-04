@@ -13,7 +13,7 @@
 #include "../../sm/gtp_sm/gtp_sm_id.h"
 #include "../../sm/slice_sm/slice_sm_id.h"
 #include "../../util/conf_file.h"
-
+// #include "../../sm/kpm_sm/kpm_data_id_wrapper.h"
 
 #include <arpa/inet.h>
 #include <cassert>
@@ -520,3 +520,67 @@ void rm_report_gtp_sm(int handler)
 #endif
 
 }
+
+// //////////////////////////////////////
+// // KPM SM 
+// /////////////////////////////////////
+// static 
+// kpm_cb* hndlr_kpm_cb;
+
+// static
+// void sm_cb_kpm(sm_ag_if_rd_t const* rd)
+// {
+//   assert(rd != NULL);
+//   assert(rd->type == INDICATION_MSG_AGENT_IF_ANS_V0);
+//   assert(rd->ind.type == KPM_STATS_V3_0);
+//   assert(hndlr_kpm_cb != NULL);
+
+//   kpm_rd_ind_data_t const* data = &rd->ind.kpm;
+//   kpm_ind_data_t ind;
+  
+  
+
+//   for(uint32_t i = 0; i < data->msg.len; ++i){
+//     kpm_t_stats_t tmp = data->msg.stats[i];
+//     ind.rb_stats.push_back(tmp);
+//   }
+
+// #ifdef XAPP_LANG_PYTHON
+//     PyGILState_STATE gstate;
+//     gstate = PyGILState_Ensure();
+// #endif
+
+//     hndlr_pdcp_cb->handle(&ind);
+
+// #ifdef XAPP_LANG_PYTHON
+//     PyGILState_Release(gstate);
+// #endif
+// }
+// int report_kpm_sm(global_e2_node_id_t* id, Interval inter_arg, kpm_cb* handler)
+// {
+//   assert(id != NULL);
+//   assert(handler != NULL);
+
+//   hndlr_kpm_cb = handler;
+
+//   const char* period = convert_period(inter_arg);
+//   sm_ans_xapp_t ans = report_sm_xapp_api(id , SM_KPM_ID, (void*)period, sm_cb_kpm);
+//   assert(ans.success == true); 
+//   return ans.u.handle;
+// }
+
+// void rm_report_kpm_sm(int handler)
+// {
+
+// #ifdef XAPP_LANG_PYTHON
+//     PyGILState_STATE gstate;
+//     gstate = PyGILState_Ensure();
+// #endif
+
+//   rm_report_sm_xapp_api(handler);
+
+// #ifdef XAPP_LANG_PYTHON
+//     PyGILState_Release(gstate);
+// #endif
+
+// }

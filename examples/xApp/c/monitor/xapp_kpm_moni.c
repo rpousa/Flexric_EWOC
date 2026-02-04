@@ -165,7 +165,6 @@ void log_kpm_measurements(kpm_ind_msg_format_1_t const* msg_frm_1)
         printf("Measurement Record not reliable");
     }
   }
-
 }
 
 static
@@ -214,7 +213,7 @@ test_info_lst_t filter_predicate(test_cond_type_e type, test_cond_e cond, int va
 
   dst.test_cond = calloc(1, sizeof(test_cond_e));
   assert(dst.test_cond != NULL && "Memory exhausted");
-  *dst.test_cond = cond;
+  *dst.test_cond = EQUAL_TEST_COND;//cond;
 
   dst.test_cond_value = calloc(1, sizeof(test_cond_value_t));
   assert(dst.test_cond_value != NULL && "Memory exhausted");
@@ -293,6 +292,8 @@ kpm_act_def_t fill_report_style_4(ric_report_style_item_t const* report_item)
 
   kpm_act_def_t act_def = {.type = FORMAT_4_ACTION_DEFINITION};
 
+  // act_def.frm_4.matching_cond_lst_len = 0;
+  // act_def.frm_4.matching_cond_lst = NULL;
   // Fill matching condition
   // [1, 32768]
   act_def.frm_4.matching_cond_lst_len = 1;
@@ -300,7 +301,7 @@ kpm_act_def_t fill_report_style_4(ric_report_style_item_t const* report_item)
   assert(act_def.frm_4.matching_cond_lst != NULL && "Memory exhausted");
   // Filter connected UEs by S-NSSAI criteria
   test_cond_type_e const type = S_NSSAI_TEST_COND_TYPE; // CQI_TEST_COND_TYPE
-  test_cond_e const condition = EQUAL_TEST_COND; // GREATERTHAN_TEST_COND
+  test_cond_e const condition = GREATERTHAN_TEST_COND; // <GREATERTHAN_TEST_COND>
   int const value = 1;
   act_def.frm_4.matching_cond_lst[0].test_info_lst = filter_predicate(type, condition, value);
 
