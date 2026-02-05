@@ -97,6 +97,8 @@ rlc_call_proc_id_t rlc_dec_call_proc_id_plain(size_t len, uint8_t const call_pro
 {
   assert(0!=0 && "Not implemented");
   assert(call_proc_id != NULL);
+  rlc_call_proc_id_t proc_id = {0};
+  return proc_id;
 }
 
 rlc_ctrl_hdr_t rlc_dec_ctrl_hdr_plain(size_t len, uint8_t const ctrl_hdr[len])
@@ -119,11 +121,15 @@ rlc_ctrl_out_t rlc_dec_ctrl_out_plain(size_t len, uint8_t const ctrl_out[len])
 {
   assert(0!=0 && "Not implemented");
   assert(ctrl_out!= NULL);
+  rlc_ctrl_out_t out = {0};
+  return out;
 }
 
 rlc_func_def_t rlc_dec_func_def_plain(size_t len, uint8_t const func_def[len])
 {
   assert(0!=0 && "Not implemented");
   assert(func_def != NULL);
+  rlc_func_def_t def = {0};
+  return def;
 }
 
