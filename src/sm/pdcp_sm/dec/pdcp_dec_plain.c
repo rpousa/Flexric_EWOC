@@ -85,6 +85,8 @@ pdcp_call_proc_id_t pdcp_dec_call_proc_id_plain(size_t len, uint8_t const call_p
 {
   assert(0!=0 && "Not implemented");
   assert(call_proc_id != NULL);
+  pdcp_call_proc_id_t proc_id = {0};
+  return proc_id;
 }
 
 pdcp_ctrl_hdr_t pdcp_dec_ctrl_hdr_plain(size_t len, uint8_t const ctrl_hdr[len])
@@ -118,6 +120,8 @@ pdcp_func_def_t pdcp_dec_func_def_plain(size_t len, uint8_t const func[len])
 {
   assert(0!=0 && "Not implemented");
   assert(func != NULL);
+  pdcp_func_def_t def = {0};
+  return def;
 }
 
 

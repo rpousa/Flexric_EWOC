@@ -35,7 +35,7 @@
 #include "NR_RRCReconfiguration.h"
 #include "NR_CellGroupConfig.h"
 #include "NR_UL-DCCH-Message.h"
-#include "../../../../src/lib/sm/dec/dec_ue_id.c"
+#include "../../../../src/lib/sm/dec/dec_ue_id.h"
 
 static
 pthread_mutex_t mtx;
@@ -149,6 +149,7 @@ void log_octet_str_ran_param_value(const e2sm_rc_ind_hdr_frmt_1_t *hdr, byte_arr
         printf("\nDecode and print CellGroupConfig message:\n");
         xer_fprint(stdout, &asn_DEF_NR_CellGroupConfig, cellGroupConfig);
         ASN_STRUCT_FREE(asn_DEF_NR_DL_DCCH_Message, msg);
+        ASN_STRUCT_FREE(asn_DEF_NR_CellGroupConfig, cellGroupConfig);
       } else if (*hdr->ev_trigger_id == 2 || *hdr->ev_trigger_id == 3 || *hdr->ev_trigger_id == 4) {
         printf("\nDecode and print UL-DCCH message:\n");
         NR_UL_DCCH_Message_t *msg = NULL;
@@ -190,6 +191,7 @@ void log_octet_str_ran_param_value(const e2sm_rc_ind_hdr_frmt_1_t *hdr, byte_arr
       } else {
         printf("UE ID type %d logging not implemented\n", ue_id_type);
       }
+      free_ue_id_e2sm(&ue_id);
       break;
 
     default:
@@ -614,6 +616,7 @@ size_t find_sm_idx(sm_ran_function_t* rf, size_t sz, bool (*f)(sm_ran_function_t
   }
 
   assert(0 != 0 && "SM ID could not be found in the RAN Function List");
+  return 0;
 }
 
 static ran_func_def_report_t *get_rc_report_cap(const e2_node_connected_xapp_t *n, const int RC_ran_function)
@@ -693,6 +696,7 @@ int main(int argc, char* argv[])
           rm_report_sm_xapp_api(hndl[i][j].u.handle);
       }
     }
+    free(hndl[i]);
   }
   free(hndl);
 

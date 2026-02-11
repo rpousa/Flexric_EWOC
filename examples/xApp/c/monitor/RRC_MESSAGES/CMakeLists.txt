@@ -31,10 +31,11 @@ endif()
 
 find_program(ASN1C_EXEC_PATH asn1c HINTS /opt/asn1c/bin)
 set(ASN1C_EXEC ${ASN1C_EXEC_PATH} CACHE FILEPATH "path to asn1c executable")
-add_custom_command(OUTPUT ${nr_rrc_source} ${nr_rrc_headers}
-  COMMAND ASN1C_PREFIX=NR_ ${ASN1C_EXEC} -pdu=all -fcompound-names -gen-UPER -no-gen-BER -no-gen-JER -no-gen-OER -gen-APER -no-gen-example -findirect-choice -D ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/${NR_RRC_GRAMMAR}
-  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${NR_RRC_GRAMMAR}
-  COMMENT "Generating NR RRC source file from ${CMAKE_CURRENT_SOURCE_DIR}/${NR_RRC_GRAMMAR}"
+run_asn1c(${CMAKE_CURRENT_SOURCE_DIR}/${NR_RRC_GRAMMAR}
+          "NR_"
+          OUTPUT ${nr_rrc_source} ${nr_rrc_headers}
+          OPTIONS -pdu=all -fcompound-names -gen-UPER -no-gen-BER -no-gen-JER -no-gen-OER -gen-APER -no-gen-example -findirect-choice
+          COMMENT "NR RRC source files"
 )
 
 add_library(asn1_nr_rrc_hdrs INTERFACE ${nr_rrc_headers})

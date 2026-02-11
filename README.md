@@ -1,15 +1,20 @@
-# FlexRIC introduction
+# FlexRIC Documentation
 
 This repository contains [O-RAN Alliance](https://www.o-ran.org/) compliant E2 Node Agent emulators, a nearRT-RIC, and xApps written in C/C++ and Python.
+
 It implements various service models (O-RAN standard E2SM-KPM v2.01/v2.03/v3.00 and E2SM-RC v1.03, as well as customized NG/GTP, PDCP, RLC, MAC, SC and TC). 
+
 Depending on the service model, different encoding schemes have been developed (ASN.1, flatbuffer, plain). 
+
 The indication data received in the xApp uses as persistence mechanism an sqlite3 database for enabling offline processing applications (e.g., ML/AI). 
 Moreover it supports E2AP v1.01/v2.03/v3.01 for all the SMs.
 
-If you want to know more about FlexRIC and its original architecture, you can find more details at: Robert Schmidt, Mikel Irazabal, and Navid Nikaein. 2021.
-FlexRIC: an SDK for next-generation SD-RANs. In Proceedings of the 17th International Conference on emerging Networking EXperiments and Technologies (CoNEXT
-'21). Association for Computing Machinery, New York, NY, USA, 411–425. DOI: https://doi.org/10.1145/3485983.3494870. A pdf copy is available at
-https://bit.ly/3uOXuCV 
+If you want to know more about FlexRIC and its original architecture, you can find more details at:
+
+> Robert Schmidt, Mikel Irazabal, and Navid Nikaein. *2021.*
+> **FlexRIC: an SDK for next-generation SD-RANs.** In *Proceedings of the 17th International Conference on emerging Networking EXperiments and Technologies (CoNEXT '21).*
+> Association for Computing Machinery, New York, NY, USA, 411–425. [DOI](https://doi.org/10.1145/3485983.3494870).
+> A PDF copy is available [here](https://bit.ly/3uOXuCV).
 
 Below is the list of features available in this version divided per component and per service model:
 
@@ -26,11 +31,11 @@ Below is the list of features available in this version divided per component an
 
 [[_TOC_]]
 
-# 1. Installation
+## 1. Installation
 
-## 1.1 Prerequisites
+### 1.1 Prerequisites
 
-### 1.1.1 GCC compiler
+#### 1.1.1 GCC compiler
 - Please make sure you have gcc-13 installed (gcc-10 and 12 are compatible as well). Follow the next steps:
 ```bash
 sudo apt update -y
@@ -40,27 +45,27 @@ sudo apt install -y gcc-13 g++-13 cpp-13
 sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100 --slave /usr/bin/g++ g++ /usr/bin/g++-13 --slave /usr/bin/gcov gcov /usr/bin/gcov-13
 sudo update-alternatives --config gcc # chose gcc-13
 ```
-Note: gcc-11 is not supported in FlexRIC
+> **Note:** gcc-11 is not supported in FlexRIC
 
-### 1.1.2 (opt.) Wireshark
+#### 1.1.2 (opt.) Wireshark
 Per `O-RAN.WG3.E2GAP-v02.00` specifications, no SCTP port is specified for E2AP protocol. In our implementation, we use port number 36421. Please, add the following configuration in Wireshark:
 
 ![E2AP configuration](fig/4.png)
 
-### 1.1.3 (opt.) Flatbuffer encoding
+#### 1.1.3 (opt.) Flatbuffer encoding
 We also provide a flatbuffers encoding/decoding scheme as alternative to ASN.1. In case that you want to use it  follow the
-instructions at https://github.com/dvidelabs/flatcc and provide the path for the lib and include when selecting it at `ccmake ..` from the build directory
+instructions at [FlatBuffers Compiler and Library in C](https://github.com/dvidelabs/flatcc) and provide the path for the lib and include when selecting it at `ccmake ..` from the build directory
 
-## 1.2 Download the required dependencies
+### 1.2 Download the required dependencies
 
-### 1.2.1 Mandatory dependencies
+#### 1.2.1 Mandatory dependencies
 ```bash
 sudo apt install libsctp-dev cmake-curses-gui libpcre2-dev
 ```
 
-### 1.2.2 (opt.) Multi-language xApp requirements
+#### 1.2.2 (opt.) Multi-language xApp requirements
 - SWIG (at least  v.4.1).
-We use SWIG as an interface generator to enable the multi-language feature (i.e., C/C++ and Python) for the xApps. Please, check your SWIG version (i.e, `swig-version`) and install it from scratch if necessary as described here: https://swig.org/svn.html or via the code below:
+We use SWIG as an interface generator to enable the multi-language feature (i.e., C/C++ and Python) for the xApps. Please, check your SWIG version (i.e, `swig-version`) and install it from scratch if necessary as described here: [SWIG](https://swig.org/svn.html) or via the code below:
 ```bash
 git clone https://github.com/swig/swig.git
 cd swig
@@ -76,15 +81,15 @@ sudo make install
 sudo apt-get install python3.10-dev
 ```
 
-# 2. FlexRIC installation
+## 2. FlexRIC installation
 
-## 2.1 Clone the FlexRIC repository
+### 2.1 Clone the FlexRIC repository
 ```bash
 git clone https://gitlab.eurecom.fr/mosaic5g/flexric
 cd flexric/
 ```
 
-## 2.2 Build FlexRIC
+### 2.2 Build FlexRIC
 ```bash
 mkdir build && cd build && cmake .. && make -j8
 ```
@@ -94,11 +99,13 @@ mkdir build && cd build && cmake -DXAPP_MULTILANGUAGE=ON .. && make -j8
 ```
 
 Currently available versions:
-|            |E2SM-KPM v2.01|E2SM-KPM v2.03|E2SM-KPM v3.00|
-|:-----------|:-------------|:-------------|:-------------|
-| E2AP v1.01 | Y            | Y            | Y            |
-| E2AP v2.03 | Y            | Y (default)  | Y            |
-| E2AP v3.01 | Y            | Y            | Y            |
+
+|            | E2SM-KPM v2.01 | E2SM-KPM v2.03 | E2SM-KPM v3.00 |
+|:-----------|:---------------|:---------------|:---------------|
+| E2AP v1.01 | Y              | Y              | Y              |
+| E2AP v2.03 | Y              | Y *(default)*  | Y              |
+| E2AP v3.01 | Y              | Y              | Y              |
+
 
 If you wish to modify the default versions, please, execute this command:
 ```bash
@@ -111,7 +118,7 @@ If you want to profile FlexRIC, or just need a fast nearRT-RIC, you should build
 mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && make -j8
 ```
 
-## 2.3 Installation of Service Models (SMs)
+### 2.3 Installation of Service Models (SMs)
 The service models are shared by xApps and the RAN. Therefore, they have to be installed in a place where the RAN can access them. The easiest is to install them globally, by typing:
 ```bash
 sudo make install
@@ -123,16 +130,16 @@ If you would like to change the default installation path, please compile as fol
 mkdir build && cd build && cmake -DCMAKE_INSTALL_PREFIX=<new-path> .. && make -j8
 ```
 
-* Note: Command `sudo make install` installs shared libraries that represent Service Models. Each time E2AP and/or E2SM-KPM versions are modified, the command must be executed again.
+> **Note:** Command `sudo make install` installs shared libraries that represent Service Models. Each time E2AP and/or E2SM-KPM versions are modified, the command must be executed again.
 
 Check that everything went fine by running unit tests:
 ```bash
 ctest -j8 --output-on-failure
 ```
 
-# 3. Service Models
+## 3. Service Models
 
-## 3.1 O-RAN
+### 3.1 O-RAN
 For a deeper understanding, we recommend that users of FlexRIC familiarize themselves with O-RAN WG3 specifications available at the [O-RAN specifications page](https://orandownloadsweb.azurewebsites.net/specifications).
 
 The following specifications are recommended:
@@ -141,23 +148,23 @@ The following specifications are recommended:
 - `O-RAN.WG3.E2SM-KPM-version` - E2SM-KPM Service Model description
 - `O-RAN.WG3.E2SM-RC-v01.03` - E2SM-RC Service Model description
 
-### 3.1.1 E2SM-KPM
+#### 3.1.1 E2SM-KPM
 As mentioned in section [2.2 Build FlexRIC](#22-build-flexric), we support E2SM-KPM v2.01/v2.03/v3.00 which all use ASN.1 encoding.
 
-### 3.1.2 E2SM-RC
+#### 3.1.2 E2SM-RC
 We support E2SM-RC v1.03 which uses ASN.1 encoding.
 
-## 3.2 Custom Service Models
+### 3.2 Custom Service Models
 In addition, we support custom service models, such are MAC, RLC, PDCP, GTP, SLICE and TC (traffic control). All use plain encoding, i.e., no ASN.1, but write the binary data into network messages.
-However, please be aware that not all of them are supported with OAI RAN, and written in C/Python languages. For more information, please refer to the table in [FlexRIC introduction](#flexric-introduction).
+However, please be aware that not all of them are supported with OAI RAN, and written in C/Python languages. For more information, please refer to the table in [FlexRIC Documentation](#flexric-documentation).
 
-# 4. Deployment
+## 4. Deployment
 
-## 4.1 Bare-metal testbed
+### 4.1 Bare-metal testbed
 Optionally run Wireshark and capture E2AP traffic.
 
 * Start the nearRT-RIC
-Please make sure to set the desired nearRT-RIC IP address `NEAR_RIC_IP` in `/usr/local/etc/flexric/flexric.conf`.
+Please make sure to set the desired nearRT-RIC IP address `NEAR_RIC_IP` in `/usr/local/etc/flexric/flexric.conf`, or feel free to overwrite it with option `-a`.
 ```bash
 ./build/examples/ric/nearRT-RIC
 ```
@@ -189,10 +196,17 @@ Within E2 Setup Request message, E2 node sends the list of supported service mod
 As this section is dedicated for testing with E2 agent emulators, **all RIC INDICATION messages contain random data, as there is no UE connected**.
 
 `XAPP_DURATION` environment variable overwrites the default xApp duration of 20s. If the negative value used, the xApp duration is considered to be infinite.
+
+At runtime, the xApp loads its default configuration from `/usr/local/etc/flexric/flexric.conf`.
+To override specific default values, you can use the following command-line options:
+* `-a`: overrides the `NEAR_RIC_IP`
+* `-d`: overrides the `DB_DIR`
+* `-n`: overrides the `DB_NAME`
+
 * Start different C xApps
   * start the E2SM-KPM monitor xApp - fetch UE-level measurements based on S-NSSAI `(1, 0xffffff)` condition; `O-RAN.WG3.E2SM-KPM-version` section 7.4.5 - REPORT Service Style 4 ("Common condition-based, UE-level")
   ```bash
-  XAPP_DURATION=20 ./build/examples/xApp/c/monitor/xapp_kpm_moni # not supported by emu_agent_enb
+  XAPP_DURATION=20 ./build/examples/xApp/c/monitor/xapp_kpm_moni -d /db_dir/ -n xapp_db # not supported by emu_agent_enb; values for options `-d` and `-n` represent an example for shared volume with Grafana
   ```
 
   * start the E2SM-RC monitor xApp - based on `ORAN.WG3.E2SM-RC-v01.03` specification, aperiodic subscriptions to:
@@ -249,10 +263,26 @@ At this point, FlexRIC is working correctly in your computer and you have alread
 
 The latency that you observe in your monitor xApp is the latency from the E2 Agent to the nearRT-RIC and xApp. In modern computers the latency should be less than 200 microseconds or 50x faster than the O-RAN specified minimum nearRT-RIC latency i.e., (10 ms - 1 sec) range.
 Therefore, FlexRIC is well suited for use cases with ultra low-latency requirements.
-Additionally, all the data received in the xApp is also written to `/tmp/xapp_db` in case that offline data processing is wanted (e.g., Machine Learning/Artificial Intelligence applications). You browse the data using e.g., sqlitebrowser. 
-Please, check the example folder for other working xApp use cases.
 
-## 4.2 (opt.) Docker testbed
+Additionally, all the data received in the xApp is also written to `DB_DIR/DB_NAME` or `/tmp/xapp_db_<random-numbers>` (if `DB_DIR=/tmp/`) in case that offline data processing is wanted (e.g., Machine Learning/Artificial Intelligence applications). You browse the data using e.g., sqlitebrowser.
+
+#### 4.1.1 Grafana
+[The official Grafana installation instructions](https://grafana.com/docs/grafana/latest/setup-grafana/installation/).
+
+At the moment, we support real time monitoring for E2SM-KPM Service Model in Grafana. After the Grafana installation, please follow the additional steps: 
+```bash
+sudo grafana-cli plugins install frser-sqlite-datasource
+sudo vi /etc/grafana/grafana.ini # set the min_refresh_interval to 1s
+sudo systemctl start grafana-server
+DB_DIR=/db_dir/ && sudo mkdir $DB_DIR && sudo chown -R "$USER":"$USER" $DB_DIR
+```
+
+Import the Grafana configuration:
+- Open Grafana in your web browser `http://localhost:3000`
+- In `Connections > Data Sources`, click `Add new data source` and choose `SQLite`; set the path to `DB_DIR/DB_NAME`; save and test the connection
+- In `Dashboards > New > Import` upload the `grafana/dashboards/grafana-dashboard.json` file; select the SQLite data source you created
+
+### 4.2 (opt.) Docker testbed
 FlexRIC is supported on the following distributions: Ubuntu, Red Hat, and Rocky Linux. You can build the images as:
 ```bash
 # Ubuntu
@@ -269,15 +299,18 @@ cd docker
 docker compose up -d
 ```
 
-# 5. Integration with RAN and example of deployment
+#### 4.2.1 Grafana
+The Grafana application is implemented in the docker container. In order to visualize real time E2SM-KPM data, open Grafana in your web browser `http://localhost:3000`.
 
-## 5.1 Integration with OpenAirInterface 5G RAN
-Follow the instructions https://gitlab.eurecom.fr/oai/openairinterface5g/-/blob/develop/openair2/E2AP/README.md.
+## 5. Integration with RAN and example of deployment
 
-## 5.2 Integration with srsRAN 5G RAN
-Follow the instructions https://docs.srsran.com/projects/project/en/latest/tutorials/source/near-rt-ric/source/index.html.
+### 5.1 Integration with OpenAirInterface 5G RAN
+Follow the instructions [here](https://gitlab.eurecom.fr/oai/openairinterface5g/-/blob/develop/openair2/E2AP/README.md).
 
-## 5.3 Integration with Keysight RICtest
+### 5.2 Integration with srsRAN 5G RAN
+Follow the instructions [here](https://docs.srsran.com/projects/project/en/latest/tutorials/source/near-rt-ric/source/index.html).
+
+### 5.3 Integration with Keysight RICtest
 
 The OAI nearRT-RIC with the xApp `flexric/examples/xApp/c/keysight/xapp_keysight_kpm_rc.c` were successfully tested with [Keysight's RICtest RAN emulator](https://www.keysight.com/us/en/product/P8828S/rictest-ran-intelligent-controller-test-solutions.html), as demonstrated at O-RAN PlugFest Fall 2023.
 
@@ -285,7 +318,7 @@ Please find more information at the following links (available only to the O-RAN
 * [recorded PlugFest session](https://oranalliance.atlassian.net/wiki/download/attachments/2907668584/O-RAN_PFFall2023_venue05.mp4). FlexRIC is shown after 3 hours 33 minutes (3:33:00).
 * [accompanying presentation](https://oranalliance.atlassian.net/wiki/download/attachments/2907668584/O-RAN_PFFall2023_venue05.pdf); the mentioned xApp is shown starting at slide 190.
 
-## 5.4  Integration with ns-O-RAN simulator
+### 5.4  Integration with ns-O-RAN simulator
 Developed by WIoT at Northeastern University, [ns-O-RAN](https://openrangym.com/ran-frameworks/ns-o-ran) is the first open source simulation platform that combines [a functional 4G/5G protocol stack in ns-3](https://github.com/nyuwireless-unipd/ns3-mmwave) with an [O-RAN-compliant E2 interface](https://gerrit.o-ran-sc.org/r/admin/repos/sim/ns3-o-ran-e2,general).
 
 Recognizing the critical role of the ns-O-RAN simulator, the Orange Innovation Egypt team successfully integrated the OAI nearRT-RIC with this simulator, resulting in the creation of a new xApp testing framework named [ns-O-RAN-flexric](https://github.com/Orange-OpenSource/ns-O-RAN-flexric/). A summary of the enhancements made to each repository is illustrated in the diagram below:
@@ -302,7 +335,7 @@ The Orange Innovation Egypt team has developed an Energy Saving (ES) under cell 
 * [Testbed tutorial](https://github.com/Orange-OpenSource/ns-O-RAN-flexric/?tab=readme-ov-file#43-energy-saving-under-cell-utilization-es-xapp-operation)
 * [Testbed demo](https://www.youtube.com/watch?v=p5MOp3b8Nm8) - the demo walks you through the process from monitoring PRB usage to initiating handovers and deactivating underutilized cells, and ensuring QoS observability throughout the scenario.
 
-## 5.5 (opt.) Synchronize clock
+### 5.5 (opt.) Synchronize clock
 Before running the various components (RAN/nearRT-RIC/xApps), you probably want to align the machines' clock. For this aim, you can use `ptp4l` in all the machines
 involved (if you have for example deployed the various components on different hosts)
 
@@ -321,23 +354,30 @@ sudo phc2sys -m -s InterfaceName -w
 
 ![alt text](fig/3.png)
 
-# 6. Integration with other nearRT-RICs 
+## 6. Integration with other nearRT-RICs
 
-## 6.1 O-RAN SC nearRT-RIC
+### 6.1 O-RAN SC nearRT-RIC
 We showcased the successful integration between OAI E2 agent and O-RAN SC nearRT-RIC in [the OAI E2AP tutorial](https://gitlab.eurecom.fr/oai/openairinterface5g/-/blob/develop/openair2/E2AP/README.md?ref_type=heads#5-o-ran-sc-nearrt-ric-interoperability).
 
-Note that the OSC nearRT-RIC can also be tested with FlexRIC E2 agent emulators (`build/examples/emulator/agent/`).
+> **Note** that the OSC nearRT-RIC can also be tested with FlexRIC E2 agent emulators (`build/examples/emulator/agent/`).
 Before proceeding with integration, please set the `e2ap_server_port` to 36422 (the default is 36421), as the E2AP port for OSC nearRT-RIC is 36422.
 
-# 7. Support/further resources
-* Mailing list: if you need help or have some questions, you can subscribe to the mailing list `techs@mosaic-5g.io` that you can find at
-  https://gitlab.eurecom.fr/mosaic5g/mosaic5g/-/wikis/mailing-lists. The emails are archived and available publicly. 
-* [Demo](DEMO.md) for flexric in July 2022
+## 7. Support/further resources
+* Mailing list: if you need help or have some questions, you can subscribe to the mailing list `techs@mosaic-5g.io` that you can find at [Gitlab](https://gitlab.eurecom.fr/mosaic5g/mosaic5g/-/wikis/mailing-lists). The emails are archived and available publicly.
 * [The Wiki space](https://gitlab.eurecom.fr/mosaic5g/flexric/-/wikis/home) contains tutorials and presentations
 * [Original FlexRIC paper ACM CoNEXT 2021](https://bit.ly/3uOXuCV)
 
-# 8. OAM Project Group & Roadmap
-Check https://openairinterface.org/projects/oam-project-group/
+### 7.1 Demo - Summer Workshop 2022
 
-# 9. FlexRIC Milestone
-Check on https://gitlab.eurecom.fr/mosaic5g/flexric/-/milestones and in https://openairinterface.org/mosaic5g/
+If you want to see the full power of FlexRIC using its multi-RAT, multi-vendor, multi-language, multi-agent and multi-xApp capabilities in action, you can replicate the following demo:
+
+[FlexRIC - Enable 4G & 5G slices via Slice Service Model - OpenAirInterface Summer Workshop 2022 July](https://www.youtube.com/watch?v=sHJSA3FgGd8)
+
+![FlexRIC](fig/1.png)
+
+
+## 8. OAM Project Group & Roadmap
+Check on [OpenAirInterface Website](https://openairinterface.org/projects/oam-project-group/).
+
+## 9. FlexRIC Milestone
+Check on [FlexRIC Milestones](https://gitlab.eurecom.fr/mosaic5g/flexric/-/milestones) and [OpenAirInterface Website](https://openairinterface.org/mosaic5g/).

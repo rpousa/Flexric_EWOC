@@ -143,6 +143,10 @@ COPY --from=oai-flexric-builder \
 COPY --from=oai-flexric-builder \
     /flexric/build/examples/emulator/agent /usr/local/flexric/emulator/agent
 
+## Copy KPM measurement list defined by 3GPP TS 28.552
+COPY --from=oai-flexric-builder \
+    /flexric/build/28_552_kpm_meas.txt /flexric/build/28_552_kpm_meas.txt
+
 RUN ldconfig && \
     echo "--- Check shared objects dependencies for executable nearRT-RIC ---" && \
     ldd /usr/local/bin/nearRT-RIC && \

@@ -66,6 +66,7 @@ void* find_if_list(const seq_list_t* l, void* start_it, void* end_it, void* valu
   printf("Not Value matched!!!\n");
   return start_it; 
   */
+  return NULL;
 }
 
 

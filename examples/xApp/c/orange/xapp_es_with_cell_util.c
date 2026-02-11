@@ -36,6 +36,8 @@
 #include "../../../../src/sm/rc_sm/ie/rc_data_ie.h"
 #include "../../../../src/util/e.h"
 
+#include <unistd.h>
+
 #define MIN_SINR -10
 
 typedef struct {
@@ -77,117 +79,6 @@ static ue_id_e2sm_t ue_id;
 static uint64_t const period_ms = 100;
 
 static pthread_mutex_t mtx;
-
-static void log_gnb_ue_id(ue_id_e2sm_t ue_id) 
-{
-  if (ue_id.gnb.gnb_cu_ue_f1ap_lst != NULL) 
-  {
-    for (size_t i = 0; i < ue_id.gnb.gnb_cu_ue_f1ap_lst_len; i++) 
-    {
-      printf("UE ID type = gNB-CU, gnb_cu_ue_f1ap = %u\n", ue_id.gnb.gnb_cu_ue_f1ap_lst[i]);
-    }
-  } else 
-  {
-    printf("UE ID type = gNB, amf_ue_ngap_id = %lu\n", ue_id.gnb.amf_ue_ngap_id);
-  }
-  if (ue_id.gnb.ran_ue_id != NULL) 
-  {
-    printf("ran_ue_id = %lx\n", *ue_id.gnb.ran_ue_id);  // RAN UE NGAP ID
-  }
-}
-
-static void log_du_ue_id(ue_id_e2sm_t ue_id) 
-{
-  printf("UE ID type = gNB-DU, gnb_cu_ue_f1ap = %u\n", ue_id.gnb_du.gnb_cu_ue_f1ap);
-  if (ue_id.gnb_du.ran_ue_id != NULL) 
-  {
-    printf("ran_ue_id = %lx\n", *ue_id.gnb_du.ran_ue_id);  // RAN UE NGAP ID
-  }
-}
-
-static void log_cuup_ue_id(ue_id_e2sm_t ue_id) 
-{
-  printf("UE ID type = gNB-CU-UP, gnb_cu_cp_ue_e1ap = %u\n", ue_id.gnb_cu_up.gnb_cu_cp_ue_e1ap);
-  if (ue_id.gnb_cu_up.ran_ue_id != NULL) 
-  {
-    printf("ran_ue_id = %lx\n", *ue_id.gnb_cu_up.ran_ue_id);  // RAN UE NGAP ID
-  }
-}
-
-typedef void (*log_ue_id)(ue_id_e2sm_t ue_id);
-
-static log_ue_id log_ue_id_e2sm[END_UE_ID_E2SM] = 
-{
-    // log_gnb_ue_id, // common for gNB-mono, CU and CU-CP
-    log_du_ue_id,
-    log_cuup_ue_id,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-};
-
-static void log_int_value(byte_array_t name, meas_record_lst_t meas_record) 
-{
-  if (cmp_str_ba("RRU.PrbTotDl", name) == 0) {
-    printf("RRU.PrbTotDl = %d [PRBs]\n", meas_record.int_val);
-    printf("RRU.PrbTotUl = %d [PRBs]\n", meas_record.int_val);
-  } else if (cmp_str_ba("DRB.PdcpSduVolumeDL", name) == 0) {
-    printf("DRB.PdcpSduVolumeDL = %d [kb]\n", meas_record.int_val);
-  } else if (cmp_str_ba("DRB.PdcpSduVolumeUL", name) == 0) {
-    printf("DRB.PdcpSduVolumeUL = %d [kb]\n", meas_record.int_val);
-    // } else if (strncmp(name.buf, "L3neighSINRListOf_UEID_", strlen("L3neighSINRListOf_UEID_")) == 0) {
-    //   printf("%s, Neighbour=%d \n", name.buf, meas_record.int_val);
-  } else {
-    // printf("Name= %s, value= %d \n", name.buf, meas_record.int_val);
-  }
-}
-
-static void log_real_value(byte_array_t name, meas_record_lst_t meas_record) 
-{
-  if (cmp_str_ba("DRB.RlcSduDelayDl", name) == 0) {
-    printf("DRB.RlcSduDelayDl = %.2f [μs]\n", meas_record.real_val);
-  } else if (cmp_str_ba("DRB.UEThpDl", name) == 0) {
-    printf("DRB.UEThpDl = %.2f [kbps]\n", meas_record.real_val);
-  } else if (cmp_str_ba("DRB.UEThpUl", name) == 0) {
-    printf("DRB.UEThpUl = %.2f [kbps]\n", meas_record.real_val);
-  } else if (strncmp(name.buf, "L3servingSINR3gpp_cell_", strlen("L3servingSINR3gpp_cell_")) == 0) {
-    printf("%s, sinr= %.4f [db]\n", name.buf, meas_record.real_val);
-  } else if (strncmp(name.buf, "L3neighSINRListOf_UEID_", strlen("L3neighSINRListOf_UEID_")) == 0) {
-    printf("%s, sinr= %.4f [db]\n", name.buf, meas_record.real_val);
-  } else {
-    // printf("Name= %s, value= %.6f \n", name.buf, meas_record.real_val);
-  }
-}
-
-typedef void (*log_meas_value)(byte_array_t name, meas_record_lst_t meas_record);
-
-static log_meas_value get_meas_value[END_MEAS_VALUE] = {
-    log_int_value,
-    log_real_value,
-    NULL,
-};
-
-static void match_meas_name_type(meas_type_t meas_type, meas_record_lst_t meas_record) 
-{
-  // Get the value of the Measurement
-  get_meas_value[meas_record.value](meas_type.name, meas_record);
-}
-
-static void match_id_meas_type(meas_type_t meas_type, meas_record_lst_t meas_record) 
-{
-  (void)meas_type;
-  (void)meas_record;
-  assert(false && "ID Measurement Type not yet supported");
-}
-
-typedef void (*check_meas_type)(meas_type_t meas_type, meas_record_lst_t meas_record);
-
-static check_meas_type match_meas_type[END_MEAS_TYPE] = 
-{
-    match_meas_name_type,
-    match_id_meas_type,
-};
 
 /*
 each cell has connected UEs(with SINR value),
@@ -263,11 +154,11 @@ UEid(IMSI), cellID
 
 */
 
+static
 struct SINR_Map* add_SINR(const uint16_t cellID) 
 {
   assert(cellID != 0);
-  if (cells_sinr_map[cellID].sinrMap == NULL && !cells_sinr_map[cellID].is_registered) 
-  {
+  if (cells_sinr_map[cellID].sinrMap == NULL && !cells_sinr_map[cellID].is_registered) {
     cells_sinr_map[cellID].sinrMap = (struct SINR_Map*)calloc(1, sizeof(struct SINR_Map));
     cells_sinr_map[cellID].is_registered = true;
     cells_sinr_map[cellID].sinrMap->cellID = cellID;
@@ -280,6 +171,7 @@ struct SINR_Map* add_SINR(const uint16_t cellID)
 }
 
 // Serving msg
+static
 void add_UE(struct SINR_Map* cell, const uint16_t ueID, const double sinr) 
 {
   assert(cell != NULL);
@@ -308,6 +200,7 @@ void add_UE(struct SINR_Map* cell, const uint16_t ueID, const double sinr)
   cell->numOfConnectedUEs += 1;
 }
 
+static
 struct SINRServingValues* get_UE(const uint16_t cellID, const uint16_t ueID) 
 {
   if (cells_sinr_map[cellID].is_registered) {
@@ -342,6 +235,7 @@ DoRecvLteMmWaveHandoverCompleted
 
 #define MAX_NUM_OF_RIC_INDICATIONS 5
 
+static
 void add_neighCell(struct SINRServingValues* UE, const uint16_t neighCellID, const double sinr) 
 {
   assert(UE != NULL);
@@ -369,8 +263,7 @@ void add_neighCell(struct SINRServingValues* UE, const uint16_t neighCellID, con
   // Update existing neighbor cell
   else {
     // Track measurements until we have MAX_NUM_OF_RIC_INDICATIONS samples
-    if (neighCell->counter < MAX_NUM_OF_RIC_INDICATIONS) 
-    {
+    if (neighCell->counter < MAX_NUM_OF_RIC_INDICATIONS) {
       // Update running sum
       neighCell->sinr = ((neighCell->sinr * neighCell->counter) + sinr) / (neighCell->counter + 1);
       neighCell->counter++;
@@ -389,12 +282,13 @@ void add_neighCell(struct SINRServingValues* UE, const uint16_t neighCellID, con
   }
 }
 
-uint8_t getTargetCellID(callback_data_t data) 
+static
+uint16_t getTargetCellID(callback_data_t data)
 {
   assert(data.neighCells != NULL);
 
   double max_sinr = MIN_SINR;
-  uint8_t targetCell = 0;
+  uint16_t targetCell = 0;
 
   printf("\n=== Target Cell Selection for UE %d ===\n", data.ueID);
   printf("Current Cell: %d\n", data.frmCurntCell);
@@ -403,13 +297,11 @@ uint8_t getTargetCellID(callback_data_t data)
   for (int i = 0; i < MAX_REGISTERED_NEIGHBOURS; i++)
   {
     if (data.neighCells[i].is_available && 
-        data.neighCells[i].counter >= MAX_NUM_OF_RIC_INDICATIONS) 
-    {
+        data.neighCells[i].counter >= MAX_NUM_OF_RIC_INDICATIONS) {
       
       // Skip cells marked for shutdown
       if (cells_sinr_map[i].sinrMap != NULL && 
-          cells_sinr_map[i].sinrMap->pending_shutdown) 
-          {
+          cells_sinr_map[i].sinrMap->pending_shutdown) {
         printf("Skipping Cell %d: marked for shutdown\n", i);
         continue;
       }
@@ -417,8 +309,7 @@ uint8_t getTargetCellID(callback_data_t data)
       printf("Evaluating Cell %d: SINR %.2f dB\n", i, data.neighCells[i].sinr);
 
       if (data.neighCells[i].sinr > MIN_SINR && 
-          data.neighCells[i].sinr > max_sinr) 
-     {
+          data.neighCells[i].sinr > max_sinr) {
         max_sinr = data.neighCells[i].sinr;
         targetCell = i;
         printf("Found better cell: %d (SINR: %.2f dB)\n", targetCell, max_sinr);
@@ -426,8 +317,7 @@ uint8_t getTargetCellID(callback_data_t data)
     }
   }
 
-  if (targetCell != 0) 
-  {
+  if (targetCell != 0) {
     printf("Selected Target Cell: %d (SINR: %.2f dB)\n", targetCell, max_sinr);
   } else 
   {
@@ -445,22 +335,6 @@ void remove_neighCell() {}
 // GetIMSI, getSINR, findX, getTargetCell(sinrMap, targetCell)
 // seach(findXX);
 
-// static
-// void log_kpm_measurements(kpm_ind_msg_format_1_t const* msg_frm_1)
-// {
-//   assert(msg_frm_1->meas_info_lst_len > 0 && "Cannot correctly print measurements");
-//   // UE Measurements per granularity period
-//   for (size_t j = 0; j < msg_frm_1->meas_data_lst_len; j++) {
-//     meas_data_lst_t const data_item = msg_frm_1->meas_data_lst[j];
-//     for (size_t z = 0; z < data_item.meas_record_len; z++) {
-//       meas_type_t const meas_type = msg_frm_1->meas_info_lst[z].meas_type;
-//       meas_record_lst_t const record_item = data_item.meas_record_lst[z];
-//       match_meas_type[meas_type.type](meas_type, record_item);
-//       if (data_item.incomplete_flag && *data_item.incomplete_flag == TRUE_ENUM_VALUE)
-//         printf("Measurement Record not reliable");
-//     }
-//   }
-// }
 struct InfoObj 
 {
   uint16_t cellID;
@@ -468,6 +342,7 @@ struct InfoObj
 };
 
 // struct InfoObj parseStr()
+static
 struct InfoObj parseServingMsg(const char* msg) 
 {
   struct InfoObj info;
@@ -482,6 +357,7 @@ struct InfoObj parseServingMsg(const char* msg)
   return info;
 }
 
+static
 struct InfoObj parseNeighMsg(const char* msg) 
 {
   struct InfoObj info;
@@ -496,19 +372,20 @@ struct InfoObj parseNeighMsg(const char* msg)
   return info;
 }
 
+static
 bool isMeasNameContains(const char* meas_name, const char* name) 
 {
   return strncmp(meas_name, name, strlen(name)) == 0;
 }
 
-static void log_kpm_measurements(kpm_ind_msg_format_1_t const* msg_frm_1) 
+static
+void log_kpm_measurements(kpm_ind_msg_format_1_t const* msg_frm_1)
 {
   assert(msg_frm_1->meas_info_lst_len > 0 && "Cannot correctly print measurements");
 
   // assert(msg_frm_1->meas_info_lst_len == msg_frm_1->meas_data_lst_len && "meas_info_lst_len not equal
   // meas_data_lst_len");
-  if (msg_frm_1->meas_info_lst_len != msg_frm_1->meas_data_lst_len) 
-  {
+  if (msg_frm_1->meas_info_lst_len != msg_frm_1->meas_data_lst_len) {
     printf("Error: meas_info_lst_len= (%ld) not equal meas_data_lst_len= (%ld)\n", msg_frm_1->meas_info_lst_len,
            msg_frm_1->meas_data_lst_len);
     return;
@@ -523,11 +400,10 @@ static void log_kpm_measurements(kpm_ind_msg_format_1_t const* msg_frm_1)
     for (size_t j = 0; j < data_item.meas_record_len;) {
       meas_record_lst_t const record_item = data_item.meas_record_lst[j];
 
-      if (meas_type.type == NAME_MEAS_TYPE) 
-      {
-        if (isMeasNameContains(meas_type.name.buf, "L3servingSINR3gpp_cell_")) 
-        {
-          struct InfoObj info = parseServingMsg(meas_type.name.buf);
+      if (meas_type.type == NAME_MEAS_TYPE) {
+        char *meas_name_str = cp_ba_to_str(meas_type.name);
+        if (isMeasNameContains(meas_name_str, "L3servingSINR3gpp_cell_")) {
+          struct InfoObj info = parseServingMsg(meas_name_str);
           double sinr = record_item.real_val;
 
           struct SINR_Map* cell = add_SINR(info.cellID);
@@ -535,9 +411,8 @@ static void log_kpm_measurements(kpm_ind_msg_format_1_t const* msg_frm_1)
 
           printf("Serving Cell %d - UE %d: %.2f dB\n", info.cellID, info.ueID, sinr);
 
-        } else if (isMeasNameContains(meas_type.name.buf, "L3neighSINRListOf_UEID_")) 
-        {
-          struct InfoObj info = parseNeighMsg(meas_type.name.buf);
+        } else if (isMeasNameContains(meas_name_str, "L3neighSINRListOf_UEID_")) {
+          struct InfoObj info = parseNeighMsg(meas_name_str);
 
           meas_record_lst_t const sinr = record_item;
           meas_record_lst_t const NeighbourID = data_item.meas_record_lst[j + 1];
@@ -549,13 +424,15 @@ static void log_kpm_measurements(kpm_ind_msg_format_1_t const* msg_frm_1)
           j += 2;
           continue;
         }
+        free(meas_name_str);
       }
       j++;
     }
   }
 }
 
-static void sm_cb_kpm(sm_ag_if_rd_t const* rd) 
+static
+void sm_cb_kpm(sm_ag_if_rd_t const* rd)
 {
   assert(rd != NULL);
   assert(rd->type == INDICATION_MSG_AGENT_IF_ANS_V0);
@@ -563,27 +440,19 @@ static void sm_cb_kpm(sm_ag_if_rd_t const* rd)
 
   // Reading Indication Message Format 3
   kpm_ind_data_t const* ind = &rd->ind.kpm.ind;
-  kpm_ric_ind_hdr_format_1_t const* hdr_frm_1 = &ind->hdr.kpm_ric_ind_hdr_format_1;
   kpm_ind_msg_format_3_t const* msg_frm_3 = &ind->msg.frm_3;
 
   // uint64_t const now = time_now_us();
   static int counter = 1;
   {
     lock_guard(&mtx);
-    // printf("\n time now = %ld \n",now);
-    // printf("\n time from simulator = %ld \n", hdr_frm_1->collectStartTime); //ntohll(hdr_frm_1->collectStartTime)
-    // printf("\n%7d KPM ind_msg latency = %ld [μs]\n", counter, now -  hdr_frm_1->collectStartTime); // xApp <-> E2 Node
 
     // Reported list of measurements per UE
     for (size_t i = 0; i < msg_frm_3->ue_meas_report_lst_len; i++) 
     {
-      // log UE ID
-      ue_id_e2sm_t const ue_id_e2sm = msg_frm_3->meas_report_per_ue[i].ue_meas_report_lst;
-      ue_id_e2sm_e const type = ue_id_e2sm.type;
-      // log_ue_id_e2sm[type](ue_id_e2sm);
       // Save UE ID for filling RC Control message
       free_ue_id_e2sm(&ue_id);
-      ue_id = cp_ue_id_e2sm(&ue_id_e2sm);
+      ue_id = cp_ue_id_e2sm(&msg_frm_3->meas_report_per_ue[i].ue_meas_report_lst);
 
       // log measurements
       log_kpm_measurements(&msg_frm_3->meas_report_per_ue[i].ind_msg_format_1);
@@ -592,7 +461,8 @@ static void sm_cb_kpm(sm_ag_if_rd_t const* rd)
   }
 }
 
-static test_info_lst_t filter_predicate(test_cond_type_e type, test_cond_e cond, int value) 
+static
+test_info_lst_t filter_predicate(test_cond_type_e type, test_cond_e cond, int value)
 {
   test_info_lst_t dst = {0};
 
@@ -617,7 +487,8 @@ static test_info_lst_t filter_predicate(test_cond_type_e type, test_cond_e cond,
   return dst;
 }
 
-static label_info_lst_t fill_kpm_label(void) 
+static
+label_info_lst_t fill_kpm_label(void)
 {
   label_info_lst_t label_item = {0};
 
@@ -627,7 +498,8 @@ static label_info_lst_t fill_kpm_label(void)
   return label_item;
 }
 
-static kpm_act_def_format_1_t fill_act_def_frm_1(ric_report_style_item_t const* report_item) 
+static
+kpm_act_def_format_1_t fill_act_def_frm_1(ric_report_style_item_t const* report_item)
 {
   assert(report_item != NULL);
 
@@ -670,7 +542,8 @@ static kpm_act_def_format_1_t fill_act_def_frm_1(ric_report_style_item_t const* 
   return ad_frm_1;
 }
 
-static kpm_act_def_t fill_report_style_4(ric_report_style_item_t const* report_item) 
+static
+kpm_act_def_t fill_report_style_4(ric_report_style_item_t const* report_item)
 {
   assert(report_item != NULL);
   assert(report_item->act_def_format_type == FORMAT_4_ACTION_DEFINITION);
@@ -698,7 +571,8 @@ static kpm_act_def_t fill_report_style_4(ric_report_style_item_t const* report_i
 
 typedef kpm_act_def_t (*fill_kpm_act_def)(ric_report_style_item_t const* report_item);
 
-static fill_kpm_act_def get_kpm_act_def[END_RIC_SERVICE_REPORT] = 
+static
+fill_kpm_act_def get_kpm_act_def[END_RIC_SERVICE_REPORT] =
 {
     NULL,
     NULL,
@@ -707,7 +581,8 @@ static fill_kpm_act_def get_kpm_act_def[END_RIC_SERVICE_REPORT] =
     NULL,
 };
 
-static kpm_sub_data_t gen_kpm_subs(kpm_ran_function_def_t const* ran_func) 
+static
+kpm_sub_data_t gen_kpm_subs(kpm_ran_function_def_t const* ran_func)
 {
   assert(ran_func != NULL);
   assert(ran_func->ric_event_trigger_style_list != NULL);
@@ -733,7 +608,8 @@ static kpm_sub_data_t gen_kpm_subs(kpm_ran_function_def_t const* ran_func)
   return kpm_sub;
 }
 
-static size_t find_sm_idx(sm_ran_function_t* rf, size_t sz, bool (*f)(sm_ran_function_t const*, int const),
+static
+size_t find_sm_idx(sm_ran_function_t* rf, size_t sz, bool (*f)(sm_ran_function_t const*, int const),
                           int const id) 
 {
   for (size_t i = 0; i < sz; i++) 
@@ -743,11 +619,14 @@ static size_t find_sm_idx(sm_ran_function_t* rf, size_t sz, bool (*f)(sm_ran_fun
   }
 
   assert(0 != 0 && "SM ID could not be found in the RAN Function List");
+  return 0;
 }
 
 //*************************************************************** *//
-static e2sm_rc_ctrl_hdr_frmt_1_t gen_rc_ctrl_hdr_frmt_1(ue_id_e2sm_t ue_id, uint32_t ric_style_type,
-                                                         uint16_t ctrl_act_id) {
+static
+e2sm_rc_ctrl_hdr_frmt_1_t gen_rc_ctrl_hdr_frmt_1(ue_id_e2sm_t ue_id, uint32_t ric_style_type,
+                                                         uint16_t ctrl_act_id)
+{
   e2sm_rc_ctrl_hdr_frmt_1_t dst = {0};
 
   // 6.2.2.6
@@ -759,7 +638,8 @@ static e2sm_rc_ctrl_hdr_frmt_1_t gen_rc_ctrl_hdr_frmt_1(ue_id_e2sm_t ue_id, uint
   return dst;
 }
 
-static e2sm_rc_ctrl_hdr_t gen_rc_ctrl_hdr(e2sm_rc_ctrl_hdr_e hdr_frmt, ue_id_e2sm_t ue_id,
+static
+e2sm_rc_ctrl_hdr_t gen_rc_ctrl_hdr(e2sm_rc_ctrl_hdr_e hdr_frmt, ue_id_e2sm_t ue_id,
                                            uint32_t ric_style_type, uint16_t ctrl_act_id) 
 {
   e2sm_rc_ctrl_hdr_t dst = {0};
@@ -775,15 +655,15 @@ static e2sm_rc_ctrl_hdr_t gen_rc_ctrl_hdr(e2sm_rc_ctrl_hdr_e hdr_frmt, ue_id_e2s
   return dst;
 }
 
-static void set_EUTRA_CGI(seq_ran_param_t* EUTRA_CGI, const char targetcell) 
+static
+void set_EUTRA_CGI(seq_ran_param_t* EUTRA_CGI, const char targetcell)
 {
   // Input validation
   assert(EUTRA_CGI != NULL);
   assert(targetcell >= '0' && targetcell <= '9');
 
   // Validate flag_false is allocated
-  if (EUTRA_CGI->ran_param_val.flag_false == NULL) 
-  {
+  if (EUTRA_CGI->ran_param_val.flag_false == NULL) {
     EUTRA_CGI->ran_param_val.flag_false = calloc(1, sizeof(ran_parameter_value_t));
     assert(EUTRA_CGI->ran_param_val.flag_false != NULL && "Memory exhausted");
   }
@@ -801,7 +681,8 @@ static void set_EUTRA_CGI(seq_ran_param_t* EUTRA_CGI, const char targetcell)
   EUTRA_CGI->ran_param_val.flag_false->octet_str_ran.buf = target_ba.buf;
 }
 
-static void gen_Target_Primary_Cell_ID(seq_ran_param_t* Target_Primary_Cell_ID, char targetcell) 
+static
+void gen_Target_Primary_Cell_ID(seq_ran_param_t* Target_Primary_Cell_ID, char targetcell)
 {
   // Target Primary Cell ID, STRUCTURE (len 1)
 
@@ -875,7 +756,8 @@ static void gen_Target_Primary_Cell_ID(seq_ran_param_t* Target_Primary_Cell_ID, 
   return;
 }
 
-static void gen_List_of_PDU_sessions_for_handover(seq_ran_param_t* List_PDU_sessions_ho) 
+static
+void gen_List_of_PDU_sessions_for_handover(seq_ran_param_t* List_PDU_sessions_ho)
 {
   int num_PDU_session = 1;
 
@@ -943,7 +825,8 @@ static void gen_List_of_PDU_sessions_for_handover(seq_ran_param_t* List_PDU_sess
   return;
 }
 
-static void gen_List_of_DRBs_for_handover(seq_ran_param_t* List_DRBs_ho) 
+static
+void gen_List_of_DRBs_for_handover(seq_ran_param_t* List_DRBs_ho)
 {
   int num_DRBs = 1;
   // List of DRBs for handover, LIST (len 1)
@@ -1005,7 +888,8 @@ static void gen_List_of_DRBs_for_handover(seq_ran_param_t* List_DRBs_ho)
   return;
 }
 
-static void gen_List_of_Secondary_cells_to_be_setup(seq_ran_param_t* List_num_2ndCells) 
+static
+void gen_List_of_Secondary_cells_to_be_setup(seq_ran_param_t* List_num_2ndCells)
 {
   int num_2ndCells = 1;
   // List of Secondary cells to be setup, LIST (len 1)
@@ -1039,7 +923,8 @@ static void gen_List_of_Secondary_cells_to_be_setup(seq_ran_param_t* List_num_2n
   return;
 }
 
-static e2sm_rc_ctrl_msg_frmt_1_t gen_rc_ctrl_msg_frmt_1_Handover_Control(char targetcell) 
+static
+e2sm_rc_ctrl_msg_frmt_1_t gen_rc_ctrl_msg_frmt_1_Handover_Control(char targetcell)
 {
   e2sm_rc_ctrl_msg_frmt_1_t dst = {0};
   // 8.4.4.1
@@ -1081,7 +966,8 @@ static e2sm_rc_ctrl_msg_frmt_1_t gen_rc_ctrl_msg_frmt_1_Handover_Control(char ta
   return dst;
 }
 
-static e2sm_rc_ctrl_msg_frmt_1_t gen_rc_ctrl_msg_frmt_1_cell_trigger(char targetcell) 
+static
+e2sm_rc_ctrl_msg_frmt_1_t gen_rc_ctrl_msg_frmt_1_cell_trigger(char targetcell)
 {
   e2sm_rc_ctrl_msg_frmt_1_t dst = {0};
   // 8.4.4.1
@@ -1100,12 +986,12 @@ static e2sm_rc_ctrl_msg_frmt_1_t gen_rc_ctrl_msg_frmt_1_cell_trigger(char target
   return dst;
 }
 
-static e2sm_rc_ctrl_msg_t gen_handover_rc_ctrl_msg(e2sm_rc_ctrl_msg_e msg_frmt, uint8_t targetcell) 
+static
+e2sm_rc_ctrl_msg_t gen_handover_rc_ctrl_msg(e2sm_rc_ctrl_msg_e msg_frmt, uint8_t targetcell)
 {
   e2sm_rc_ctrl_msg_t dst = {0};
 
-  if (msg_frmt == FORMAT_1_E2SM_RC_CTRL_MSG) 
-  {
+  if (msg_frmt == FORMAT_1_E2SM_RC_CTRL_MSG) {
     dst.format = msg_frmt;
     dst.frmt_1 = gen_rc_ctrl_msg_frmt_1_Handover_Control(targetcell);
   } else 
@@ -1116,7 +1002,8 @@ static e2sm_rc_ctrl_msg_t gen_handover_rc_ctrl_msg(e2sm_rc_ctrl_msg_e msg_frmt, 
   return dst;
 }
 
-static e2sm_rc_ctrl_msg_t gen_cell_trigger_rc_ctrl_msg(e2sm_rc_ctrl_msg_e msg_frmt, char targetcell) 
+static
+e2sm_rc_ctrl_msg_t gen_cell_trigger_rc_ctrl_msg(e2sm_rc_ctrl_msg_e msg_frmt, char targetcell)
 {
   e2sm_rc_ctrl_msg_t dst = {0};
 
@@ -1131,11 +1018,11 @@ static e2sm_rc_ctrl_msg_t gen_cell_trigger_rc_ctrl_msg(e2sm_rc_ctrl_msg_e msg_fr
   return dst;
 }
 
-static ue_id_e2sm_t gen_rc_ue_id(ue_id_e2sm_e type, int ueid) 
+static
+ue_id_e2sm_t gen_rc_ue_id(ue_id_e2sm_e type, int ueid)
 {
   ue_id_e2sm_t ue_id = {0};
-  if (type == GNB_UE_ID_E2SM) 
-  {
+  if (type == GNB_UE_ID_E2SM) {
     ue_id.type = GNB_UE_ID_E2SM;
     ue_id.gnb.ran_ue_id = (uint64_t*)malloc(sizeof(uint64_t));
     *(ue_id.gnb.ran_ue_id) = ueid;
@@ -1146,7 +1033,8 @@ static ue_id_e2sm_t gen_rc_ue_id(ue_id_e2sm_e type, int ueid)
   return ue_id;
 }
 
-static bool eq_sm(sm_ran_function_t const* elem, int const id) 
+static
+bool eq_sm(sm_ran_function_t const* elem, int const id)
 {
   if (elem->id == id)
     return true;
@@ -1154,6 +1042,7 @@ static bool eq_sm(sm_ran_function_t const* elem, int const id)
   return false;
 }
 
+static
 void forEachCell(Callback targetCellFinding, Callback cbHOAction, Callback cbSwitchOffAction, callback_data_t data) 
 {
   static bool processed_cells[MAX_REGISTERED_CELLS] = {false};
@@ -1167,14 +1056,12 @@ void forEachCell(Callback targetCellFinding, Callback cbHOAction, Callback cbSwi
     if (cells_sinr_map[i].sinrMap != NULL && 
         cells_sinr_map[i].is_registered && 
         !processed_cells[i] &&
-        !cells_sinr_map[i].sinrMap->pending_shutdown) 
-    {
+        !cells_sinr_map[i].sinrMap->pending_shutdown) {
       
       struct SINR_Map* cell = cells_sinr_map[i].sinrMap;
       
       // Check if cell meets shutdown criteria (low utilization, etc)
-      if (cell->numOfConnectedUEs <= 1) 
-      { // Example criteria
+      if (cell->numOfConnectedUEs <= 1) { // Example criteria
         cell->pending_shutdown = true;
         cell->shutdown_start_time = time(NULL);
         printf("Cell %d marked for shutdown\n", cell->cellID);
@@ -1187,8 +1074,7 @@ void forEachCell(Callback targetCellFinding, Callback cbHOAction, Callback cbSwi
   {
     if (cells_sinr_map[i].sinrMap != NULL && 
         cells_sinr_map[i].is_registered && 
-        !processed_cells[i]) 
-    {
+        !processed_cells[i]) {
       
       struct SINR_Map* cell = cells_sinr_map[i].sinrMap;
       
@@ -1198,8 +1084,8 @@ void forEachCell(Callback targetCellFinding, Callback cbHOAction, Callback cbSwi
 
       printf(" Cell %d  meeting the Action Defination Condition\n", cell->cellID);
 
-      int handovers_needed = 0;
-      int handovers_completed = 0;
+      size_t handovers_needed = 0;
+      size_t handovers_completed = 0;
 
       // Check each UE in this cell
       for (int j = 0; j < MAX_REGISTERED_UES; j++) {
@@ -1235,15 +1121,13 @@ void forEachCell(Callback targetCellFinding, Callback cbHOAction, Callback cbSwi
       bool timeout_reached = (current_time - cell->shutdown_start_time) > SHUTDOWN_TIMEOUT_SEC;
       
       if ((handovers_needed > 0 && handovers_needed == handovers_completed) || 
-          (timeout_reached && handovers_completed == cell->numOfConnectedUEs)) 
-          {
+          (timeout_reached && handovers_completed == cell->numOfConnectedUEs)) {
         
-        printf("All handovers complete (%d/%d) or timeout reached for cell %d\n", 
+        printf("All handovers complete (%ld/%ld) or timeout reached for cell %d\n",
                handovers_completed, handovers_needed, cell->cellID);
         
         data.frmCurntCell = cell->cellID;
-        if (cbSwitchOffAction(data)) 
-        {
+        if (cbSwitchOffAction(data)) {
           // Clean up cell data structures
           if (cell->connectedUEs != NULL) {
             for (int j = 0; j < MAX_REGISTERED_UES; j++) {
@@ -1270,13 +1154,13 @@ void forEachCell(Callback targetCellFinding, Callback cbHOAction, Callback cbSwi
 
 // void doHandoverAction(const e2_node_arr_xapp_t * nodes, const int ueID, const uint8_t frmCurntCell, const uint8_t
 // toTargetCell) {
+static
 uint16_t doHandoverAction(callback_data_t data) 
 {
   char trgtCell = '0' + data.toTargetCell;
   printf("[xApp]: data.toTargetCell= %d ..\n", data.toTargetCell);
 
-  if (!(trgtCell > '0' && trgtCell <= '9')) 
-  {
+  if (!(trgtCell > '0' && trgtCell <= '9')) {
     printf("[xApp]: Invalid target cell %c\n", trgtCell);
     return 0;
   }
@@ -1288,7 +1172,6 @@ uint16_t doHandoverAction(callback_data_t data)
                                 HANDOVER_CONTROL_7_6_4_1);
   rc_ctrl.msg = gen_handover_rc_ctrl_msg(FORMAT_1_E2SM_RC_CTRL_MSG, trgtCell);
 
-  int64_t st = time_now_us();
   printf("[xApp]: Send Handover Control message to move IMSI %d from cellId %d to target cellId %c \n", data.ueID,
          data.frmCurntCell, trgtCell);
 
@@ -1297,8 +1180,7 @@ uint16_t doHandoverAction(callback_data_t data)
   {
     sm_ans_xapp_t ans = control_sm_xapp_api(&(*data.nodes).n[i].id, SM_RC_ID, &rc_ctrl);
 
-    if (ans.success) 
-    {
+    if (ans.success) {
       handover_sent = true;
       printf("[xApp]: Handover request sent successfully to node %zu\n", i);
     }
@@ -1308,7 +1190,8 @@ uint16_t doHandoverAction(callback_data_t data)
   return handover_sent ? 1 : 0;
 }
 
-uint8_t switchOffCurrentCell(callback_data_t data) 
+static
+uint16_t switchOffCurrentCell(callback_data_t data)
 {
   rc_ctrl_req_data_t rc_ctrl = {0};
   ue_id_e2sm_t ue_id = gen_rc_ue_id(GNB_UE_ID_E2SM, data.ueID);
@@ -1350,8 +1233,7 @@ int main(int argc, char* argv[])
     e2_node_connected_xapp_t* n = &nodes.n[i];
     size_t const idx = find_sm_idx(n->rf, n->len_rf, eq_sm, KPM_ran_function);
 
-    if (n->rf[idx].defn.kpm.ric_report_style_list != NULL) 
-    {
+    if (n->rf[idx].defn.kpm.ric_report_style_list != NULL) {
       kpm_sub_data_t kpm_sub = gen_kpm_subs(&n->rf[idx].defn.kpm);
       hndl[i] = report_sm_xapp_api(&n->id, KPM_ran_function, &kpm_sub, sm_cb_kpm);
       assert(hndl[i].success == true);

@@ -170,7 +170,7 @@ void load_plugin_ric(plugin_ric_t* p, const char* path)
   strncat(ptr, ptr_so_name , match - ptr_so_name);
   ptr += match - ptr_so_name;
   const char* suffix = "_sm_ric";
-  strncat(ptr,suffix, strlen(suffix));
+  strcat(ptr, suffix);
 
   sm_ric_t* (*fp)(void);
   fp = dlsym(handle, symbol_so);

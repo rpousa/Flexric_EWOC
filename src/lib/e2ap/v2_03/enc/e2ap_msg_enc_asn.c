@@ -1188,7 +1188,6 @@ byte_array_t e2ap_enc_control_failure_asn_msg(const e2ap_msg_t* msg)
 E2AP_PDU_t* e2ap_enc_control_failure_asn_pdu( const ric_control_failure_t* cf)
 {
   assert(cf != NULL);
-  assert(0!=0 && "Untested code");
 
   //Message Type. Mandatory
   E2AP_PDU_t* pdu = calloc(1, sizeof(E2AP_PDU_t));
@@ -2309,6 +2308,7 @@ E2AP_PDU_t* e2ap_enc_service_update_failure_asn_pdu(const ric_service_update_fai
   return pdu;
 
 */
+  return NULL;
 }
 
 
@@ -3162,7 +3162,7 @@ struct E2AP_PDU* e2ap_enc_e42_setup_response_asn_pdu(const e42_setup_response_t*
 
   int rc = ASN_SEQUENCE_ADD(&out->protocolIEs.list, setup_rid);
   assert(rc == 0);
-  assert(sr->len_e2_nodes_conn > 0 && "No global node conected??");
+  printf("[NEAR-RIC]: Registered E2 nodes = %d.\n", sr->len_e2_nodes_conn);
 
   for(size_t i = 0; i < sr->len_e2_nodes_conn; ++i){
 

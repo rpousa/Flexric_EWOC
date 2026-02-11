@@ -500,6 +500,8 @@ tc_call_proc_id_t tc_dec_call_proc_id_plain(size_t len, uint8_t const call_proc_
 {
   assert(0!=0 && "Not implemented");
   assert(call_proc_id != NULL);
+  tc_call_proc_id_t proc_id = {0};
+  return proc_id;
 }
 
 tc_ctrl_hdr_t tc_dec_ctrl_hdr_plain(size_t len, uint8_t const ctrl_hdr[len])
@@ -1571,5 +1573,7 @@ tc_func_def_t tc_dec_func_def_plain(size_t len, uint8_t const func_def[len])
 {
   assert(0!=0 && "Not implemented");
   assert(func_def != NULL);
+  tc_func_def_t def = {0};
+  return def;
 }
 

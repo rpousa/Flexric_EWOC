@@ -34,5 +34,7 @@ sm_ag_if_ans_t write_ctrl_rlc_sm(void const* data)
 {
   (void)data;
   assert(0!=0 && "Not supported");
+  sm_ag_if_ans_t ans = {0};
+  return ans;
 }
 

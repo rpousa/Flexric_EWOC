@@ -128,7 +128,7 @@ bool eq_tc_ind_hdr(tc_ind_hdr_t* m0, tc_ind_hdr_t* m1){
   assert(m1 != NULL);
 
   assert(0!=0 && "Not implemented");
-
+  return false;
 }
 
 
@@ -323,6 +323,7 @@ bool eq_L7_filter(L7_filter_t const* m0, L7_filter_t const* m1)
   assert(m1 != NULL);
 
   assert(0!=0 && "not implemented");
+  return false;
 }
 
 L7_filter_t cp_L7_filter(L7_filter_t const* flt)
@@ -888,6 +889,8 @@ tc_call_proc_id_t cp_tc_call_proc_id( tc_call_proc_id_t const* src)
   assert(src != NULL);
 
   assert(0!=0 && "Not implememnted");
+  tc_call_proc_id_t proc_id = {0};
+  return proc_id;
 }
 
 

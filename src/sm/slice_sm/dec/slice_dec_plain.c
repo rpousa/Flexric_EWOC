@@ -402,6 +402,8 @@ slice_call_proc_id_t slice_dec_call_proc_id_plain(size_t len, uint8_t const call
 {
   assert(0!=0 && "Not implemented");
   assert(call_proc_id != NULL);
+  slice_call_proc_id_t proc_id = {0};
+  return proc_id;
 }
 
 slice_ctrl_hdr_t slice_dec_ctrl_hdr_plain(size_t len, uint8_t const ctrl_hdr[len])
@@ -503,5 +505,7 @@ slice_func_def_t slice_dec_func_def_plain(size_t len, uint8_t const func_def[len
 {
   assert(0!=0 && "Not implemented");
   assert(func_def != NULL);
+  slice_func_def_t def = {0};
+  return def;
 }
 

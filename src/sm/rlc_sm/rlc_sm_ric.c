@@ -168,6 +168,8 @@ sm_ag_if_rd_rsu_t on_ric_service_update_rlc_sm_ric(sm_ric_t const* sm_ric, sm_ri
 //  sm_rlc_ric_t* sm = (sm_rlc_ric_t*)sm_ric;  
 
   assert(0!=0 && "Not implemented");
+  sm_ag_if_rd_rsu_t rsu = {0};
+  return rsu;
 }
 
 static

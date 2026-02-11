@@ -92,6 +92,13 @@ static
 }
 
 static
+meas_record_lst_t fill_CARR_PDSCHMCSDist(ue_id_e2sm_t const* ue)
+{
+  assert(ue != NULL);
+  return fill_rnd_int_data();
+}
+
+static
 assoc_ht_open_t ht;
 
 typedef meas_record_lst_t (*kpm_fp)(ue_id_e2sm_t const* ue);
@@ -110,6 +117,7 @@ const kv_measure_t lst_measure[] = {
   (kv_measure_t){.key = "DRB.UEThpUl", .value =  fill_DRB_UEThpUl }, 
   (kv_measure_t){.key = "RRU.PrbTotDl", .value =  fill_RRU_PrbTotDl }, 
   (kv_measure_t){.key = "RRU.PrbTotUl", .value =  fill_RRU_PrbTotUl }, 
+  (kv_measure_t){.key = "CARR.PDSCHMCSDist", .value = fill_CARR_PDSCHMCSDist },
   }; 
   // 3GPP TS 28.552
 
@@ -640,6 +648,58 @@ ric_report_style_item_t fill_kpm_report_style_4(void)
 
   return dst;
 }
+
+static
+ric_report_style_item_t fill_kpm_report_style_1(void)
+{
+  ric_report_style_item_t dst = {0}; 
+
+  // 8.3.3
+  dst.report_style_type = STYLE_1_RIC_SERVICE_REPORT; 
+  
+  // 8.3.4
+  const char style_name[] = "E2 Node Measurement"; 
+  dst.report_style_name = cp_str_to_ba(style_name);
+  
+  // 8.3.5
+  dst.act_def_format_type = FORMAT_1_ACTION_DEFINITION;
+
+#ifdef NGRAN_GNB
+  // 3GPP TS 28.552
+  const char* kpm_meas_node[] = {
+    "CARR.PDSCHMCSDist"
+  };
+#elif defined NGRAN_GNB_CU 
+  const char* kpm_meas_node[] = {
+    NULL
+  };
+#elif defined NGRAN_GNB_DU
+  const char* kpm_meas_node[] = {
+    "CARR.PDSCHMCSDist"
+  };
+#elif defined NGRAN_ENB 
+  const char* kpm_meas_node[] = {
+    NULL
+  };
+#else
+  _Static_assert(0!=0, "Unknown node type");
+#endif
+
+  const size_t sz = sizeof(kpm_meas_node) / sizeof(char *);
+  // [1, 65535]
+  dst.meas_info_for_action_lst_len = sz;
+  dst.meas_info_for_action_lst = ecalloc(sz, sizeof(meas_info_for_action_lst_t));
+
+  for (size_t i = 0; i < sz; ++i) {
+    dst.meas_info_for_action_lst[i].name = cp_str_to_ba(kpm_meas_node[i]);
+  }
+
+  // 8.3.5
+  dst.ind_hdr_format_type = FORMAT_1_INDICATION_HEADER;
+  dst.ind_msg_format_type = FORMAT_1_INDICATION_MESSAGE;
+
+  return dst;
+}
 #endif
 
 static
@@ -671,11 +731,12 @@ kpm_ran_function_def_t fill_kpm_ran_func_def(void)
 
   // Sequence of Report styles
 #if defined KPM_V2_03 || defined KPM_V3_00
-  size_t const sz_report = 1;
+  size_t const sz_report = 2;
   dst.sz_ric_report_style_list = sz_report;
   dst.ric_report_style_list = ecalloc(sz_report, sizeof(ric_report_style_item_t )); 
 
   dst.ric_report_style_list[0] = fill_kpm_report_style_4();
+  dst.ric_report_style_list[1] = fill_kpm_report_style_1();
 #endif
 
   return dst;
