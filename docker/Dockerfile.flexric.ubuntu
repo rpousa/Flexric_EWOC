@@ -93,6 +93,7 @@ RUN mkdir build && \
     cmake -GNinja -DCMAKE_BUILD_TYPE=Release \
           -DE2AP_VERSION=$E2AP_VERSION \
           -DKPM_VERSION=$KPM_VERSION \
+          -DXAPP_MULTILANGUAGE=ON \
           -DCMAKE_C_COMPILER=gcc-12 \
           -DCMAKE_CXX_COMPILER=g++-12 .. && \
     ninja && \
