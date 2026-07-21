@@ -379,10 +379,10 @@ void transplant(assoc_rb_tree_t* tree, assoc_node_t* u_node, assoc_node_t* v_nod
 static
 assoc_node_t* minimum(assoc_rb_tree_t const* tree, assoc_node_t* x_node)
 {
-  if(x_node == tree->dummy)
+  if(x_node == NULL || x_node == tree->dummy)
     return tree->dummy;
 
-  while(x_node->left != tree->dummy)
+  while(x_node->left != tree->dummy && x_node->left != NULL)
     x_node = x_node->left;
   return x_node;
 }
@@ -394,7 +394,7 @@ assoc_node_t* find_rb_tree(assoc_rb_tree_t* tree, assoc_node_t* node, void* key)
   assert(node != NULL);
   assert(key != NULL);
 
- while(node != tree->dummy){
+ while(node != tree->dummy && node != NULL){
     int rc = tree->comp(key, node->key); 
     if(rc == 1)
       node = node->left;
@@ -454,7 +454,7 @@ void* assoc_rb_tree_extract(assoc_rb_tree_t* tree, void* key)
   assert(key != NULL);
 
   assoc_node_t* z_node = find_rb_tree(tree, tree->root, key);
-  assert(z_node != tree->dummy && "Trying to extract a key not found in the tree" );
+  assert(z_node != tree->dummy && z_node != NULL && "Trying to extract a key not found in the tree" );
   
   assoc_rb_tree_extract_node(tree, z_node);
 
