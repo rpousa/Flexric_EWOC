@@ -120,6 +120,8 @@ void* bi_map_extract_right(bi_map_t* map, void* key2, size_t key2_sz, free_fp_ke
   assert(key2_sz == map->right.key_sz);
 
   void* key1 = assoc_extract(&map->right, key2);
+  if (key1 == NULL)
+    return;
   void* key3 = assoc_extract(&map->left, key1);
 
   int cmp = map->right.comp(key2, key3);
@@ -127,7 +129,7 @@ void* bi_map_extract_right(bi_map_t* map, void* key2, size_t key2_sz, free_fp_ke
 
   assert(map->right.free_func != NULL);
 
-  if(f != NULL)
+  if(f != NULL && key3 != NULL)
     f(key3);
   free(key3);
 
