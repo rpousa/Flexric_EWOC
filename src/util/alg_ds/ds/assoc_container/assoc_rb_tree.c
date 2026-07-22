@@ -419,11 +419,11 @@ void assoc_rb_tree_extract_node(assoc_rb_tree_t* tree, assoc_node_t* z_node)
   assoc_color_e original_color = z_node->color;
   assoc_node_t* x_node = NULL; //z_node;
   assoc_node_t* y_node = NULL; //z_node;
-  if(z_node->left == tree->dummy){
+  if(z_node->left == tree->dummy || z_node->left == NULL){
     x_node = z_node->right;
     transplant(tree, z_node, z_node->right);
     // note that nobody points to z_node, even though z_node still points to parent and right
-  } else if(z_node->right == tree->dummy){
+  } else if(z_node->right == tree->dummy || z_node->right == NULL){
     x_node = z_node->left;
     transplant(tree, z_node, z_node->left);
   } else {
