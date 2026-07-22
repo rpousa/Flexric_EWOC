@@ -452,7 +452,8 @@ void* assoc_rb_tree_extract(assoc_rb_tree_t* tree, void* key)
 {
   assert(tree != NULL);
   assert(key != NULL);
-
+  if (z_node == tree->dummy)
+    return NULL;
   assoc_node_t* z_node = find_rb_tree(tree, tree->root, key);
   assert(z_node != tree->dummy && z_node != NULL && "Trying to extract a key not found in the tree" );
   
