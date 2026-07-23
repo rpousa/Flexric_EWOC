@@ -371,7 +371,7 @@ def fill_slice_ctrl_msg(ctrl_type, ctrl_msg):
         assoc = ric.ue_slice_assoc_array(ctrl_msg["num_ues"])
         for i in range(ctrl_msg["num_ues"]):
             a = ric.ue_slice_assoc_t()
-            a.rnti = assoc_rnti # TODO: assign the rnti after get the indication msg from slice_ind_to_dict_json()
+            #a.rnti = assoc_rnti # TODO: assign the rnti after get the indication msg from slice_ind_to_dict_json()
             a.dl_id = ctrl_msg["ues"][i]["assoc_dl_slice_id"]
             # TODO: UL SLICE CTRL ASSOC
             # a.ul_id = 0
