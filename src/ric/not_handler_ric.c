@@ -27,12 +27,12 @@ void notification_handle_ric(near_ric_t* ric, sctp_msg_t const* msg)
   assert(msg != NULL && msg->type == SCTP_MSG_NOTIFICATION);
 
   assert(msg->notif->sn_header.sn_type == SCTP_SHUTDOWN_EVENT && "Only shutdown event supported");
+  global_e2_node_id_t* id = NULL;
+  {
+    lock_guard(&ric->ep_mtx);                           
+    id = e2ap_rm_sock_addr_ric(&ric->ep, &msg->info);
+  }                                                     
 
-  // Look up (and remove) the sockaddr -> global_e2_node_id mapping for the
-  // association that just shut down. This returns NULL if the association was
-  // never fully registered (e.g. SCTP came up but no E2 SETUP completed —
-  // typical for a flaky cross-host link that flaps before/at E2 SETUP).
-  global_e2_node_id_t* id = e2ap_rm_sock_addr_ric(&ric->ep, &msg->info);
 
   // GUARD 1: association shut down without a completed E2 SETUP.
   // Nothing was ever registered for this sockaddr -> nothing to clean up.

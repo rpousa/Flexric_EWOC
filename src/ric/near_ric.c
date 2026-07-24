@@ -208,6 +208,12 @@ near_ric_t* init_near_ric(fr_args_t const* args)
   const int port = 36421;
   printf("[NEAR-RIC]: nearRT-RIC IP Address = %s, PORT = %d\n", addr, port);
   e2ap_init_ep_ric(&ric->ep, addr, port);
+  pthread_mutexattr_t ep_attr = {0};
+#ifdef DEBUG
+  pthread_mutexattr_settype(&ep_attr, PTHREAD_MUTEX_ERRORCHECK);
+#endif
+  int rc_ep = pthread_mutex_init(&ric->ep_mtx, &ep_attr);
+  assert(rc_ep == 0);
 
   init_asio_ric(&ric->io); 
 
@@ -412,7 +418,10 @@ void sctp_msg_arrived_event(void* arg)
   if(msg.type == E2_SETUP_REQUEST){
     global_e2_node_id_t const* id = &msg.u_msgs.e2_stp_req.id;
     //printf("Received message with id = %d, port = %d \n", id->nb_id.nb_id, sctp_msg->info.addr.sin_port);
-    e2ap_reg_sock_addr_ric(&ric->ep, id, &sctp_msg->info);
+     {
+      lock_guard(&ric->ep_mtx);                         // <-- ADD
+      e2ap_reg_sock_addr_ric(&ric->ep, id, &sctp_msg->info);
+    }                                                   // <-- unlocked here
   }
 
   e2ap_msg_t ans = e2ap_msg_handle_ric(ric, &msg);
@@ -515,6 +524,9 @@ void free_near_ric(near_ric_t* ric)
   seq_free(&ric->conn_e2_nodes, static_free_e2_node );
 
   int rc = pthread_mutex_destroy(&ric->conn_e2_nodes_mtx);
+  assert(rc == 0);
+
+  rc = pthread_mutex_destroy(&ric->ep_mtx);
   assert(rc == 0);
 
   rc = pthread_mutex_destroy(&ric->pend_mtx);

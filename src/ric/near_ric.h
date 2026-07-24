@@ -55,6 +55,7 @@ typedef struct e2ap_msg_s (*e2ap_handle_msg_fp_ric)(struct near_ric_s* ric, cons
 typedef struct near_ric_s
 {
   e2ap_ep_ric_t ep;
+  pthread_mutex_t ep_mtx;
   e2ap_ric_t ap; 
   asio_ric_t io;
   size_t sz_handle_msg;
