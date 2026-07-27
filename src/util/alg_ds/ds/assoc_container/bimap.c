@@ -121,7 +121,7 @@ void* bi_map_extract_right(bi_map_t* map, void* key2, size_t key2_sz, free_fp_ke
 
   void* key1 = assoc_extract(&map->right, key2);
   if (key1 == NULL)
-    return;
+    return NULL;
   void* key3 = assoc_extract(&map->left, key1);
 
   int cmp = map->right.comp(key2, key3);

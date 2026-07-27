@@ -71,7 +71,7 @@ bool stop_ind_event(e2_agent_t* ag, ric_gen_id_t id)
   void* it_r = find_if_rb_tree(&ag->ind_event.right, start_r, end_r, &tmp, eq_ind_event); 
   if(it_r == end_r){
     printf("[E2 AGENT]: RAN_FUNC_ID %d RIC_REQ_ID %d not found. Spuriously occurs when abruptly closing the xApp\n", id.ran_func_id, id.ric_req_id);
-    return false;;
+    return false;
   }
 
   assert(it_r != end_r);
@@ -87,6 +87,9 @@ bool stop_ind_event(e2_agent_t* ag, ric_gen_id_t id)
 
   void (*free_ind_event)(void*) = NULL;
   int* fd = bi_map_extract_right(&ag->ind_event, &tmp, sizeof(tmp), free_ind_event);
+  if (fd == NULL){
+    return false;
+  }
   assert(*fd > -1);
   //printf("fd value in stopping pending event = %d \n", *fd);
  
@@ -94,7 +97,7 @@ bool stop_ind_event(e2_agent_t* ag, ric_gen_id_t id)
     rm_fd_asio_agent(&ag->io, *fd);
   free(fd);
 
-  return true;;
+  return true;
 }
 
 void init_handle_msg_agent(size_t len, handle_msg_fp_agent (*handle_msg)[len])
@@ -324,6 +327,9 @@ void stop_pending_event(e2_agent_t* ag, pending_event_t event)
 
   void (*free_pending_event)(void*)=NULL;
   int* fd = bi_map_extract_right(&ag->pending, &event, sizeof(event), free_pending_event);
+  if (fd == NULL){
+    return NULL; 
+  }
   assert(*fd > 0);
   //printf("[E2-AGENT]: stopping pending\n");
   //event = %d \n", *fd);

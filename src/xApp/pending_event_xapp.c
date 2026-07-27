@@ -179,6 +179,9 @@ int* rm_pending_event_ev(pending_event_xapp_ds_t* p, pending_event_xapp_t* ev )
     // It returns the void* of key1. the void* of the key2 is freed
     void (*free_pending_event_xapp)(void*) = NULL; 
     fd = bi_map_extract_right(&p->pending, ev , sizeof(*ev), free_pending_event_xapp);
+    if (fd == NULL){
+    return NULL;
+    }
     assert(sz == bi_map_size(&p->pending) + 1 );
   }
   assert(fd != NULL && *fd > 0);
