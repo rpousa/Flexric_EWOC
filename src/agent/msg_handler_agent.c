@@ -328,7 +328,7 @@ void stop_pending_event(e2_agent_t* ag, pending_event_t event)
   void (*free_pending_event)(void*)=NULL;
   int* fd = bi_map_extract_right(&ag->pending, &event, sizeof(event), free_pending_event);
   if (fd == NULL){
-    return NULL; 
+    return; 
   }
   assert(*fd > 0);
   //printf("[E2-AGENT]: stopping pending\n");
