@@ -51,18 +51,6 @@ static snssai_t WATCH_NSSAI[] = {
   {1, 1},   
   {1, 2},   
   {1, 3},  
-  {1, 4},   
-  {1, 5},   
-  {1, 6},   
-  {1, 7},   
-  {1, 8},   
-  {1, 9},   
-  {1, 10},  
-  {1, 11},  
-  {1, 12},  
-  {1, 13},  
-  {1, 14},  
-  {1, 15},
 };
 
 static size_t const WATCH_NSSAI_LEN = sizeof(WATCH_NSSAI)/sizeof(WATCH_NSSAI[0]);
@@ -537,12 +525,21 @@ kpm_act_def_t fill_report_style_1(ric_report_style_item_t const* report_item)
 
 typedef kpm_act_def_t (*fill_kpm_act_def)(ric_report_style_item_t const* report_item);
 
+// static
+// fill_kpm_act_def get_kpm_act_def[END_RIC_SERVICE_REPORT] = {
+//     fill_report_style_1,
+//     NULL,
+//     NULL,
+//     fill_report_style_4,
+//     NULL,
+// };
+
 static
 fill_kpm_act_def get_kpm_act_def[END_RIC_SERVICE_REPORT] = {
     fill_report_style_1,
     NULL,
     NULL,
-    fill_report_style_4,
+    NULL,
     NULL,
 };
 
@@ -643,7 +640,8 @@ int main(int argc, char* argv[])
 
   sm_ans_xapp_t** hndl = (sm_ans_xapp_t**)calloc(nodes.len, sizeof(sm_ans_xapp_t*));
   assert(hndl != NULL);
-
+  size_t* hndl_count = calloc(nodes.len, sizeof(size_t));   // <-- ADD
+  assert(hndl_count != NULL);
   ////////////
   // START KPM
   ////////////
@@ -686,7 +684,7 @@ int main(int argc, char* argv[])
     }
   }
   hndl_count[i] = h;      // remember how many handles this node really used
-
+  }
   // for (size_t i = 0; i < nodes.len; ++i) {
   //   e2_node_connected_xapp_t* n = &nodes.n[i];
 
@@ -717,7 +715,8 @@ int main(int argc, char* argv[])
   for (int i = 0; i < nodes.len; ++i) {
     e2_node_connected_xapp_t* n = &nodes.n[i];
     size_t const idx = find_sm_idx(n->rf, n->len_rf, eq_sm, KPM_ran_function);
-    for (size_t j = 0; j < n->rf[idx].defn.kpm.sz_ric_report_style_list; j++) {
+    for (size_t j = 0; j < hndl_count[i]; j++) {
+      //for (size_t j = 0; j < n->rf[idx].defn.kpm.sz_ric_report_style_list; j++) {
       // Remove the handle previously returned
       if (hndl[i][j].success == true)
         rm_report_sm_xapp_api(hndl[i][j].u.handle);
@@ -726,7 +725,7 @@ int main(int argc, char* argv[])
   }
   free(hndl);
   free(hndl_count);
-  
+
   free_kpm_meas_unit_hash_table();
 
   // Stop the xApp
