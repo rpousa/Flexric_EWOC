@@ -43,6 +43,31 @@ pthread_mutex_t mtx;
 static
 assoc_ht_open_t ht = {0};
 
+
+typedef struct { uint8_t sst; uint32_t sd; } snssai_t;
+
+
+static snssai_t WATCH_NSSAI[] = {
+  {1, 1},   
+  {1, 2},   
+  {1, 3},  
+  {1, 4},   
+  {1, 5},   
+  {1, 6},   
+  {1, 7},   
+  {1, 8},   
+  {1, 9},   
+  {1, 10},  
+  {1, 11},  
+  {1, 12},  
+  {1, 13},  
+  {1, 14},  
+  {1, 15},
+};
+
+static size_t const WATCH_NSSAI_LEN = sizeof(WATCH_NSSAI)/sizeof(WATCH_NSSAI[0]);
+
+
 static
 uint32_t hash_func(const void* key_v)
 {
@@ -268,19 +293,47 @@ void sm_cb_kpm(sm_ag_if_rd_t const* rd)
   }
 }
 
+// static
+// test_info_lst_t filter_predicate(test_cond_type_e type, test_cond_e cond, int value)
+// {
+//   test_info_lst_t dst = {0};
+
+//   dst.test_cond_type = type;
+//   // It can only be TRUE_TEST_COND_TYPE so it does not matter the type
+//   // but ugly ugly...
+//   dst.S_NSSAI = TRUE_TEST_COND_TYPE;
+
+//   dst.test_cond = calloc(1, sizeof(test_cond_e));
+//   assert(dst.test_cond != NULL && "Memory exhausted");
+//   *dst.test_cond = EQUAL_TEST_COND;//cond;
+
+//   dst.test_cond_value = calloc(1, sizeof(test_cond_value_t));
+//   assert(dst.test_cond_value != NULL && "Memory exhausted");
+//   dst.test_cond_value->type = OCTET_STRING_TEST_COND_VALUE;
+
+//   dst.test_cond_value->octet_string_value = calloc(1, sizeof(byte_array_t));
+//   assert(dst.test_cond_value->octet_string_value != NULL && "Memory exhausted");
+//   const size_t len_nssai = 1;
+//   dst.test_cond_value->octet_string_value->len = len_nssai;
+//   dst.test_cond_value->octet_string_value->buf = calloc(len_nssai, sizeof(uint8_t));
+//   assert(dst.test_cond_value->octet_string_value->buf != NULL && "Memory exhausted");
+//   dst.test_cond_value->octet_string_value->buf[0] = value;
+
+//   return dst;
+// }
+
 static
-test_info_lst_t filter_predicate(test_cond_type_e type, test_cond_e cond, int value)
+test_info_lst_t filter_predicate(test_cond_type_e type, test_cond_e cond,
+                                 uint8_t sst, uint32_t sd)
 {
   test_info_lst_t dst = {0};
 
   dst.test_cond_type = type;
-  // It can only be TRUE_TEST_COND_TYPE so it does not matter the type
-  // but ugly ugly...
   dst.S_NSSAI = TRUE_TEST_COND_TYPE;
 
   dst.test_cond = calloc(1, sizeof(test_cond_e));
   assert(dst.test_cond != NULL && "Memory exhausted");
-  *dst.test_cond = EQUAL_TEST_COND;//cond;
+  *dst.test_cond = cond;                       // EQUAL for an S-NSSAI match
 
   dst.test_cond_value = calloc(1, sizeof(test_cond_value_t));
   assert(dst.test_cond_value != NULL && "Memory exhausted");
@@ -288,14 +341,20 @@ test_info_lst_t filter_predicate(test_cond_type_e type, test_cond_e cond, int va
 
   dst.test_cond_value->octet_string_value = calloc(1, sizeof(byte_array_t));
   assert(dst.test_cond_value->octet_string_value != NULL && "Memory exhausted");
-  const size_t len_nssai = 1;
-  dst.test_cond_value->octet_string_value->len = len_nssai;
-  dst.test_cond_value->octet_string_value->buf = calloc(len_nssai, sizeof(uint8_t));
-  assert(dst.test_cond_value->octet_string_value->buf != NULL && "Memory exhausted");
-  dst.test_cond_value->octet_string_value->buf[0] = value;
 
+  const size_t len = 4;                        // 1B SST + 3B SD
+  uint8_t* b = calloc(len, sizeof(uint8_t));
+  assert(b != NULL && "Memory exhausted");
+  b[0] =  sst;
+  b[1] = (sd >> 16) & 0xff;
+  b[2] = (sd >>  8) & 0xff;
+  b[3] =  sd        & 0xff;
+
+  dst.test_cond_value->octet_string_value->len = len;
+  dst.test_cond_value->octet_string_value->buf = b;   // <-- assign, do NOT calloc again
   return dst;
 }
+
 
 static
 label_info_lst_t fill_kpm_label(void)
@@ -351,33 +410,56 @@ kpm_act_def_format_1_t fill_act_def_frm_1(ric_report_style_item_t const* report_
   return ad_frm_1;
 }
 
+// static
+// kpm_act_def_t fill_report_style_4(ric_report_style_item_t const* report_item)
+// {
+//   assert(report_item != NULL);
+//   assert(report_item->act_def_format_type == FORMAT_4_ACTION_DEFINITION);
+
+//   kpm_act_def_t act_def = {.type = FORMAT_4_ACTION_DEFINITION};
+
+//   // act_def.frm_4.matching_cond_lst_len = 0;
+//   // act_def.frm_4.matching_cond_lst = NULL;
+//   // Fill matching condition
+//   // [1, 32768]
+//   act_def.frm_4.matching_cond_lst_len = 1;
+//   act_def.frm_4.matching_cond_lst = calloc(act_def.frm_4.matching_cond_lst_len, sizeof(matching_condition_format_4_lst_t));
+//   assert(act_def.frm_4.matching_cond_lst != NULL && "Memory exhausted");
+//   // Filter connected UEs by S-NSSAI criteria
+//   test_cond_type_e const type = S_NSSAI_TEST_COND_TYPE; // CQI_TEST_COND_TYPE
+//   test_cond_e const condition = GREATERTHAN_TEST_COND; // <GREATERTHAN_TEST_COND>
+//   int const value = 1;
+
+//   act_def.frm_4.matching_cond_lst[0].test_info_lst = filter_predicate(type, condition, sst, sd);
+
+//   // Fill Action Definition Format 1
+//   // 8.2.1.2.1
+//   act_def.frm_4.action_def_format_1 = fill_act_def_frm_1(report_item);
+
+//   return act_def;
+// }
+
 static
-kpm_act_def_t fill_report_style_4(ric_report_style_item_t const* report_item)
+kpm_act_def_t fill_report_style_4(ric_report_style_item_t const* report_item,
+                                  uint8_t sst, uint32_t sd)
 {
   assert(report_item != NULL);
   assert(report_item->act_def_format_type == FORMAT_4_ACTION_DEFINITION);
 
   kpm_act_def_t act_def = {.type = FORMAT_4_ACTION_DEFINITION};
 
-  // act_def.frm_4.matching_cond_lst_len = 0;
-  // act_def.frm_4.matching_cond_lst = NULL;
-  // Fill matching condition
-  // [1, 32768]
   act_def.frm_4.matching_cond_lst_len = 1;
-  act_def.frm_4.matching_cond_lst = calloc(act_def.frm_4.matching_cond_lst_len, sizeof(matching_condition_format_4_lst_t));
+  act_def.frm_4.matching_cond_lst = calloc(1, sizeof(matching_condition_format_4_lst_t));
   assert(act_def.frm_4.matching_cond_lst != NULL && "Memory exhausted");
-  // Filter connected UEs by S-NSSAI criteria
-  test_cond_type_e const type = S_NSSAI_TEST_COND_TYPE; // CQI_TEST_COND_TYPE
-  test_cond_e const condition = GREATERTHAN_TEST_COND; // <GREATERTHAN_TEST_COND>
-  int const value = 1;
-  act_def.frm_4.matching_cond_lst[0].test_info_lst = filter_predicate(type, condition, value);
 
-  // Fill Action Definition Format 1
-  // 8.2.1.2.1
+  test_cond_type_e const type = S_NSSAI_TEST_COND_TYPE;
+  test_cond_e const condition = EQUAL_TEST_COND;     // EQUAL, not GREATERTHAN
+  act_def.frm_4.matching_cond_lst[0].test_info_lst = filter_predicate(type, condition, sst, sd);
+
   act_def.frm_4.action_def_format_1 = fill_act_def_frm_1(report_item);
-
   return act_def;
 }
+
 
 static
 label_info_lst_t fill_distribution_bin_label(const uint32_t x, const uint32_t y, const uint32_t z)
@@ -464,29 +546,56 @@ fill_kpm_act_def get_kpm_act_def[END_RIC_SERVICE_REPORT] = {
     NULL,
 };
 
+// static
+// kpm_sub_data_t gen_kpm_subs(kpm_ran_function_def_t const* ran_func, ric_report_style_item_t const* report_item)
+// {
+//   assert(ran_func != NULL);
+//   assert(ran_func->ric_event_trigger_style_list != NULL);
+
+//   kpm_sub_data_t kpm_sub = {0};
+
+//   // Generate Event Trigger
+//   assert(ran_func->ric_event_trigger_style_list[0].format_type == FORMAT_1_RIC_EVENT_TRIGGER);
+//   kpm_sub.ev_trg_def.type = FORMAT_1_RIC_EVENT_TRIGGER;
+//   kpm_sub.ev_trg_def.kpm_ric_event_trigger_format_1.report_period_ms = period_ms;
+
+//   // Generate Action Definition
+//   kpm_sub.sz_ad = 1;
+//   kpm_sub.ad = calloc(kpm_sub.sz_ad, sizeof(kpm_act_def_t));
+//   assert(kpm_sub.ad != NULL && "Memory exhausted");
+
+//   // Multiple Action Definitions in one SUBSCRIPTION message is not supported in this project
+//   // Multiple REPORT Styles = Multiple Action Definition = Multiple SUBSCRIPTION messages
+//   ric_service_report_e const report_style_type = report_item->report_style_type;
+//   *kpm_sub.ad = get_kpm_act_def[report_style_type](report_item);
+
+//   return kpm_sub;
+// }
+
 static
-kpm_sub_data_t gen_kpm_subs(kpm_ran_function_def_t const* ran_func, ric_report_style_item_t const* report_item)
+kpm_sub_data_t gen_kpm_subs(kpm_ran_function_def_t const* ran_func,
+                            ric_report_style_item_t const* report_item,
+                            uint8_t sst, uint32_t sd)
 {
   assert(ran_func != NULL);
   assert(ran_func->ric_event_trigger_style_list != NULL);
 
   kpm_sub_data_t kpm_sub = {0};
 
-  // Generate Event Trigger
   assert(ran_func->ric_event_trigger_style_list[0].format_type == FORMAT_1_RIC_EVENT_TRIGGER);
   kpm_sub.ev_trg_def.type = FORMAT_1_RIC_EVENT_TRIGGER;
   kpm_sub.ev_trg_def.kpm_ric_event_trigger_format_1.report_period_ms = period_ms;
 
-  // Generate Action Definition
   kpm_sub.sz_ad = 1;
-  kpm_sub.ad = calloc(kpm_sub.sz_ad, sizeof(kpm_act_def_t));
+  kpm_sub.ad = calloc(1, sizeof(kpm_act_def_t));
   assert(kpm_sub.ad != NULL && "Memory exhausted");
 
-  // Multiple Action Definitions in one SUBSCRIPTION message is not supported in this project
-  // Multiple REPORT Styles = Multiple Action Definition = Multiple SUBSCRIPTION messages
   ric_service_report_e const report_style_type = report_item->report_style_type;
-  *kpm_sub.ad = get_kpm_act_def[report_style_type](report_item);
-
+  if (report_style_type == STYLE_4_RIC_SERVICE_REPORT) {         // NSSAI-filtered
+    *kpm_sub.ad = fill_report_style_4(report_item, sst, sd);
+  } else {
+    *kpm_sub.ad = get_kpm_act_def[report_style_type](report_item);
+  }
   return kpm_sub;
 }
 
@@ -541,26 +650,64 @@ int main(int argc, char* argv[])
   int const KPM_ran_function = 2;
 
   for (size_t i = 0; i < nodes.len; ++i) {
-    e2_node_connected_xapp_t* n = &nodes.n[i];
+  e2_node_connected_xapp_t* n = &nodes.n[i];
 
-    size_t const idx = find_sm_idx(n->rf, n->len_rf, eq_sm, KPM_ran_function);
-    assert(n->rf[idx].defn.type == KPM_RAN_FUNC_DEF_E && "KPM is not the received RAN Function");
-    // if REPORT Service is supported by E2 node, send SUBSCRIPTION
-    // e.g. OAI CU-CP
-    const size_t sz_report_styles = n->rf[idx].defn.kpm.sz_ric_report_style_list;
-    hndl[i] = calloc(sz_report_styles, sizeof(sm_ans_xapp_t));
-    assert(hndl[i] != NULL);
-    for (size_t j = 0; j < sz_report_styles; j++) {
-      ric_report_style_item_t *report_item = &n->rf[idx].defn.kpm.ric_report_style_list[j];
-      // Generate KPM SUBSCRIPTION message
-      kpm_sub_data_t kpm_sub = gen_kpm_subs(&n->rf[idx].defn.kpm, report_item);
+  size_t const idx = find_sm_idx(n->rf, n->len_rf, eq_sm, KPM_ran_function);
+  assert(n->rf[idx].defn.type == KPM_RAN_FUNC_DEF_E && "KPM is not the received RAN Function");
 
-      hndl[i][j] = report_sm_xapp_api(&n->id, KPM_ran_function, &kpm_sub, sm_cb_kpm);
-      assert(hndl[i][j].success == true);
+  const size_t sz_report_styles = n->rf[idx].defn.kpm.sz_ric_report_style_list;
 
+  // Worst case: every style is Style 4 -> multiply by the NSSAI count.
+  hndl[i] = calloc(sz_report_styles * WATCH_NSSAI_LEN, sizeof(sm_ans_xapp_t));
+  assert(hndl[i] != NULL);
+
+  size_t h = 0;                                  // number of handles actually used on this node
+  for (size_t j = 0; j < sz_report_styles; j++) {
+    ric_report_style_item_t* report_item = &n->rf[idx].defn.kpm.ric_report_style_list[j];
+
+    if (report_item->report_style_type == STYLE_4_RIC_SERVICE_REPORT) {
+      // One subscription per S-NSSAI (matching_cond entries are AND-ed, so we cannot OR them)
+      for (size_t k = 0; k < WATCH_NSSAI_LEN; k++) {
+        kpm_sub_data_t kpm_sub =
+            gen_kpm_subs(&n->rf[idx].defn.kpm, report_item,
+                         WATCH_NSSAI[k].sst, WATCH_NSSAI[k].sd);
+        hndl[i][h] = report_sm_xapp_api(&n->id, KPM_ran_function, &kpm_sub, sm_cb_kpm);
+        assert(hndl[i][h].success == true);
+        h++;
+        free_kpm_sub_data(&kpm_sub);
+      }
+    } else {
+      kpm_sub_data_t kpm_sub =
+          gen_kpm_subs(&n->rf[idx].defn.kpm, report_item, 0, 0);   // sst/sd unused
+      hndl[i][h] = report_sm_xapp_api(&n->id, KPM_ran_function, &kpm_sub, sm_cb_kpm);
+      assert(hndl[i][h].success == true);
+      h++;
       free_kpm_sub_data(&kpm_sub);
     }
   }
+  hndl_count[i] = h;      // remember how many handles this node really used
+
+  // for (size_t i = 0; i < nodes.len; ++i) {
+  //   e2_node_connected_xapp_t* n = &nodes.n[i];
+
+  //   size_t const idx = find_sm_idx(n->rf, n->len_rf, eq_sm, KPM_ran_function);
+  //   assert(n->rf[idx].defn.type == KPM_RAN_FUNC_DEF_E && "KPM is not the received RAN Function");
+  //   // if REPORT Service is supported by E2 node, send SUBSCRIPTION
+  //   // e.g. OAI CU-CP
+  //   const size_t sz_report_styles = n->rf[idx].defn.kpm.sz_ric_report_style_list;
+  //   hndl[i] = calloc(sz_report_styles, sizeof(sm_ans_xapp_t));
+  //   assert(hndl[i] != NULL);
+  //   for (size_t j = 0; j < sz_report_styles; j++) {
+  //     ric_report_style_item_t *report_item = &n->rf[idx].defn.kpm.ric_report_style_list[j];
+  //     // Generate KPM SUBSCRIPTION message
+  //     kpm_sub_data_t kpm_sub = gen_kpm_subs(&n->rf[idx].defn.kpm, report_item);
+
+  //     hndl[i][j] = report_sm_xapp_api(&n->id, KPM_ran_function, &kpm_sub, sm_cb_kpm);
+  //     assert(hndl[i][j].success == true);
+
+  //     free_kpm_sub_data(&kpm_sub);
+  //   }
+  // }
   ////////////
   // END KPM
   ////////////
@@ -578,7 +725,8 @@ int main(int argc, char* argv[])
     free(hndl[i]);
   }
   free(hndl);
-
+  free(hndl_count);
+  
   free_kpm_meas_unit_hash_table();
 
   // Stop the xApp
