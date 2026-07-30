@@ -49,8 +49,8 @@ typedef struct { uint8_t sst; uint32_t sd; } snssai_t;
 
 static snssai_t WATCH_NSSAI[] = {
   {1, 1},   
-  {1, 2},   
-  {1, 3},  
+  {2, 1},   
+  {3, 1},  
 };
 
 static size_t const WATCH_NSSAI_LEN = sizeof(WATCH_NSSAI)/sizeof(WATCH_NSSAI[0]);
