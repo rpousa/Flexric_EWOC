@@ -30,8 +30,6 @@
 #include <unistd.h>
 #include <signal.h>
 #include <pthread.h>
-#include <sqlite3.h>
-
 
 #include "NR_DL-DCCH-Message.h"
 #include "NR_RRCReconfiguration.h"
@@ -41,11 +39,6 @@
 
 static
 pthread_mutex_t mtx;
-
-static sqlite3*      rc_db      = NULL;
-static sqlite3_stmt* rc_ins     = NULL;
-// UE id captured from the UE-ID trigger, applied to the next measurement report
-static int64_t       rc_last_ue = -1;
 
 static
 void log_gnb_ue_id(ue_id_e2sm_t ue_id)
@@ -106,20 +99,6 @@ void log_int_ran_param_value_rrc_state(int64_t value)
   }
 }
 
-static int64_t extract_ran_ue_id(ue_id_e2sm_t ue_id)
-{
-  switch (ue_id.type) {
-    case GNB_UE_ID_E2SM:
-      return ue_id.gnb.ran_ue_id     ? (int64_t)*ue_id.gnb.ran_ue_id     : -1;
-    case GNB_DU_UE_ID_E2SM:
-      return ue_id.gnb_du.ran_ue_id  ? (int64_t)*ue_id.gnb_du.ran_ue_id  : -1;
-    case GNB_CU_UP_UE_ID_E2SM:
-      return ue_id.gnb_cu_up.ran_ue_id ? (int64_t)*ue_id.gnb_cu_up.ran_ue_id : -1;
-    default:
-      return -1;
-  }
-}
-
 static
 void log_meas_report(const NR_MeasResults_t *results)
 {
@@ -129,11 +108,10 @@ void log_meas_report(const NR_MeasResults_t *results)
     NR_MeasQuantityResults_t *mqr = measresultnr->measResult.cellResults.resultsSSB_Cell;
 
     if (mqr != NULL) {
-      const long  rrsrp = *mqr->rsrp - 156;
-      const float rrsrq = (float)(*mqr->rsrq - 87) / 2.0f;
-      const float rsinr = (float)(*mqr->sinr - 46) / 2.0f;
+      const long rrsrp = *mqr->rsrp - 156;
+      const float rrsrq = (float) (*mqr->rsrq - 87) / 2.0f;
+      const float rsinr = (float) (*mqr->sinr - 46) / 2.0f;
       printf("resultsSSB-Cell: RSRP %ld [dBm] RSRQ %.1f [dB] SINR %.1f [dB]\n", rrsrp, rrsrq, rsinr);
-      rc_db_insert(rc_cur_ue, (double)rsinr, (double)rrsrp, (double)rrsrq);   // <-- NEW
     } else {
       printf("resultsSSB-Cell: empty.\n");
     }
@@ -206,7 +184,6 @@ void log_octet_str_ran_param_value(const e2sm_rc_ind_hdr_frmt_1_t *hdr, byte_arr
       assert(ret.code == RC_OK);
 
       ue_id_e2sm_t ue_id = dec_ue_id_asn(&ue_id_asn);
-      rc_cur_ue = extract_ran_ue_id(ue_id);
       ue_id_e2sm_e const ue_id_type = ue_id.type;
       log_ue_id ue_id_logger = log_ue_id_e2sm[ue_id_type];
       if (ue_id_logger) {
@@ -264,35 +241,22 @@ void log_ind_1_1(const e2sm_rc_ind_hdr_frmt_1_t *hdr, const e2sm_rc_ind_msg_frmt
   {
     lock_guard(&mtx);
 
-    rc_cur_ue = -1;   // reset per indication
-
-    // Pass 1: resolve UE ID first, if present
-    for (size_t j = 0; j < msg->sz_seq_ran_param; j++) {
-      seq_ran_param_t* const p = &msg->seq_ran_param[j];
-      if (p->ran_param_id == E2SM_RC_RS1_UE_ID) {
-        switch (p->ran_param_val.type) {
-          case ELEMENT_KEY_FLAG_FALSE_RAN_PARAMETER_VAL_TYPE:
-            log_element_ran_param_value(hdr, p->ran_param_val.flag_false, p->ran_param_id); break;
-          case ELEMENT_KEY_FLAG_TRUE_RAN_PARAMETER_VAL_TYPE:
-            log_element_ran_param_value(hdr, p->ran_param_val.flag_true,  p->ran_param_id); break;
-          default: break;
-        }
-      }
-    }
-
-    // Pass 2: everything else (RRC Message -> measurementReport -> DB insert)
+    // List parameters
     for (size_t j = 0; j < msg->sz_seq_ran_param; j++) {
       seq_ran_param_t* const ran_param_item = &msg->seq_ran_param[j];
-      if (ran_param_item->ran_param_id == E2SM_RC_RS1_UE_ID) continue;   // done in pass 1
 
       log_ran_param_name_frmt_1(ran_param_item->ran_param_id);
       printf("RAN Parameter ID = %d\n", ran_param_item->ran_param_id);
 
       switch (ran_param_item->ran_param_val.type) {
         case ELEMENT_KEY_FLAG_FALSE_RAN_PARAMETER_VAL_TYPE:
-          log_element_ran_param_value(hdr, ran_param_item->ran_param_val.flag_false, ran_param_item->ran_param_id); break;
+          log_element_ran_param_value(hdr, ran_param_item->ran_param_val.flag_false, ran_param_item->ran_param_id);
+          break;
+
         case ELEMENT_KEY_FLAG_TRUE_RAN_PARAMETER_VAL_TYPE:
-          log_element_ran_param_value(hdr, ran_param_item->ran_param_val.flag_true,  ran_param_item->ran_param_id); break;
+          log_element_ran_param_value(hdr, ran_param_item->ran_param_val.flag_true, ran_param_item->ran_param_id);
+          break;
+
         default:
           printf("Add corresponding function for the RAN Parameter Value Type (other than element)\n");
       }
@@ -354,41 +318,6 @@ void log_ind_1_2(const e2sm_rc_ind_hdr_frmt_1_t *hdr, const e2sm_rc_ind_msg_frmt
       }
     }
   }
-}
-static void rc_db_init(void)
-{
-  // Same shared file KPM writes to: flexric.conf DB_DIR=/usr/local/xappdb/ + DB_NAME=xapp_db
-  int rc = sqlite3_open_v2("/usr/local/xappdb/xapp_db", &rc_db,
-                           SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
-  assert(rc == SQLITE_OK && "cannot open xapp_db");
-
-  sqlite3_busy_timeout(rc_db, 5000);
-  sqlite3_exec(rc_db, "PRAGMA journal_mode=WAL;", 0, 0, 0);   // match KPM writer
-  sqlite3_exec(rc_db,
-      "CREATE TABLE IF NOT EXISTS RC_MEAS_REPORT("
-      "tstamp INTEGER, ran_ue_id INTEGER, sinr REAL, rsrp REAL, rsrq REAL);",
-      0, 0, 0);
-
-  sqlite3_prepare_v2(rc_db,
-      "INSERT INTO RC_MEAS_REPORT(tstamp,ran_ue_id,sinr,rsrp,rsrq) VALUES(?,?,?,?,?);",
-      -1, &rc_ins, NULL);
-  assert(rc_ins != NULL);
-}
-
-static void rc_db_insert(int64_t ue, double sinr, double rsrp, double rsrq)
-{ struct timespec ts;
-  clock_gettime(CLOCK_REALTIME, &ts);
-  if (rc_ins == NULL) return;
-  // milliseconds: frser reads a numeric time column as ms; tstamp is otherwise epoch-seconds
-  int64_t ts_ms = (int64_t)ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
-  sqlite3_bind_int64 (rc_ins, 1, ts_ms);
-  sqlite3_bind_int64 (rc_ins, 2, ue);
-  sqlite3_bind_double(rc_ins, 3, sinr);
-  sqlite3_bind_double(rc_ins, 4, rsrp);
-  sqlite3_bind_double(rc_ins, 5, rsrq);
-  sqlite3_step(rc_ins);
-  sqlite3_reset(rc_ins);
-  sqlite3_clear_bindings(rc_ins);
 }
 
 static
@@ -708,7 +637,6 @@ int main(int argc, char* argv[])
   // Init the xApp
   init_xapp_api(&args);
   sleep(1);
-  rc_db_init();
 
   e2_node_arr_xapp_t nodes = e2_nodes_xapp_api();
   defer({ free_e2_node_arr_xapp(&nodes); });
@@ -777,6 +705,4 @@ int main(int argc, char* argv[])
     usleep(1000);
 
   printf("Test xApp run SUCCESSFULLY\n");
-  if (rc_ins) sqlite3_finalize(rc_ins);
-  if (rc_db)  sqlite3_close(rc_db);
 }
