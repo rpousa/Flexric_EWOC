@@ -12,12 +12,11 @@ add_executable(xapp_slice_moni_ctrl
  						-ldl
  						)
 
-# param_slice_moni.c has never been through a compiler: it is written against an
-# xApp API this FlexRIC does not have -- a context argument on sm_cb, and value
-# rather than pointer access into the RC RAN-parameter structures. Off by default
-# so that ran-build does not depend on it; -DBUILD_PARAM_SLICE_MONI=ON to work on
-# it.
-option(BUILD_PARAM_SLICE_MONI "Build the parameterised slice monitor xApp" OFF)
+# param_slice_moni.c was written against an xApp API this FlexRIC does not have
+# and had never been compiled. Fixed; kept behind a switch so that a future
+# breakage here can be taken out of ran-build's way with one word rather than a
+# submodule revert: -DBUILD_PARAM_SLICE_MONI=OFF.
+option(BUILD_PARAM_SLICE_MONI "Build the parameterised slice monitor xApp" ON)
 if(BUILD_PARAM_SLICE_MONI)
 
   add_executable(param_slice_moni 

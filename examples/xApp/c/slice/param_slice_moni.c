@@ -48,6 +48,9 @@
 #include "../../../../src/sm/rc_sm/ie/rc_data_ie.h"
 #include "../../../../src/sm/rc_sm/rc_sm_id.h"
 #include "../../../../src/sm/rc_sm/ie/ir/ran_param_struct.h"
+/* ran_parameter_value_type.h only forward-declares ran_parameter_value_t;
+ * allocating one needs the full definition. */
+#include "../../../../src/sm/rc_sm/ie/ir/ran_parameter_value.h"
 #include "../../../../src/sm/rc_sm/ie/ir/ran_param_list.h"
 
 #include <stdatomic.h>
@@ -328,71 +331,116 @@ static slice_ctrl_req_data_t build_req(slice_ctrl_msg_e type,
   return req;
 }
 
-// added for RC control 
-/* ── RC control builder: E2SM-RC Control Style 2, S-NSSAI RAN params ─────── */
-static rc_ctrl_req_data_t build_rc_cuup_steer(uint16_t rnti,
-                                              uint8_t  sst,
-                                              uint32_t sd)
+/* ── RC control, E2SM-RC Style 3 (Connected Mode Mobility), Action 1 ─────────
+ *
+ * This is not a CU-UP steer yet, and cannot be one: OAI's RC control handler
+ * (openair2/E2AP/RAN_FUNCTION/O-RAN/ran_func_rc.c) implements exactly two
+ * things, and neither is bearer steering by slice.
+ *
+ *   Style 2, Action 2   QoS flow mapping configuration. Reads RAN parameters 4
+ *                       (QFI) and 5 (direction), and ASSERTS on any other
+ *                       action id -- a wrong Style 2 request takes the gNB
+ *                       process down.
+ *   Style 3, Action 1   Handover Control. Reads Target Primary Cell ID and
+ *                       hands the UE to that cell.
+ *
+ * Style 3 is used here deliberately: a request it cannot satisfy makes
+ * write_ctrl_conn_mode_mobility() print what is missing and return, where the
+ * Style 2 path would abort the agent.
+ *
+ * Two things must change before this does anything:
+ *
+ *  1. RAN parameter 21 (S-NSSAI) has to become Target Primary Cell ID carrying
+ *     an 8-octet NR CGI -- 3 octets of PLMN identity then the 36-bit NR Cell
+ *     Identity left-aligned, as nr_cgi_cell_id() in that file decodes it. The
+ *     SST/SD structure below is well formed but the handler never looks for it.
+ *  2. rrc_ue_id has to be a real one. OAI dereferences ue_id.gnb.ran_ue_id and
+ *     passes it to rrc_gNB_get_ue_context(), so it must be the CU-CP's internal
+ *     rrc_ue_id -- not the RNTI this xApp captures from SLICE indications, which
+ *     is a MAC identifier in a different namespace. A UE ID that OAI will accept
+ *     has to be copied from an indication that carries one (RC format 2, or
+ *     KPM) with cp_ue_id_e2sm(), the way examples/xApp/c/kpm_rc does it.
+ *
+ * Neither function below is called yet.
+ */
+static rc_ctrl_req_data_t build_rc_handover(uint64_t rrc_ue_id,
+                                            uint8_t  sst,
+                                            uint32_t sd)
 {
   rc_ctrl_req_data_t req = {0};
 
-  req.hdr.ric_style_type      = 2;            /* Radio Bearer Control        */
-  req.hdr.ctrl_act_id         = 1;            /* DRB setup/modification      */
-  req.hdr.ue_id.type          = GNB_UE_ID;
-  req.hdr.ue_id.gnb.ran_ue_id = rnti;
+  /* Control header, format 1 */
+  req.hdr.format                = FORMAT_1_E2SM_RC_CTRL_HDR;
+  req.hdr.frmt_1.ric_style_type = 3;                        /* Conn. mode mobility */
+  req.hdr.frmt_1.ctrl_act_id    = HANDOVER_CONTROL_7_6_4_1;
+  req.hdr.frmt_1.ue_id.type     = GNB_UE_ID_E2SM;
 
-  req.msg.style     = 2;
-  req.msg.action_id = 1;
+  /* RAN UE ID is optional in E2SM, so it is a pointer. */
+  req.hdr.frmt_1.ue_id.gnb.ran_ue_id = calloc(1, sizeof(uint64_t));
+  assert(req.hdr.frmt_1.ue_id.gnb.ran_ue_id != NULL && "Memory exhausted");
+  *req.hdr.frmt_1.ue_id.gnb.ran_ue_id = rrc_ue_id;
 
-  /* One RAN parameter: S-NSSAI (id 21) as a STRUCTURE of SST(22)/SD(23) */
-  req.msg.len_ran_param = 1;
-  req.msg.ran_param     = calloc(1, sizeof(seq_ran_param_t));
-  assert(req.msg.ran_param);
+  /* Control message, format 1: one RAN parameter, S-NSSAI (21) as a STRUCTURE
+   * of SST (22) and, when configured, SD (23). See note 1 above. */
+  req.msg.format              = FORMAT_1_E2SM_RC_CTRL_MSG;
+  req.msg.frmt_1.sz_ran_param = 1;
+  req.msg.frmt_1.ran_param    = calloc(1, sizeof(seq_ran_param_t));
+  assert(req.msg.frmt_1.ran_param != NULL && "Memory exhausted");
 
-  seq_ran_param_t* p    = &req.msg.ran_param[0];
+  seq_ran_param_t* p    = &req.msg.frmt_1.ran_param[0];
   p->ran_param_id       = 21;
   p->ran_param_val.type = STRUCTURE_RAN_PARAMETER_VAL_TYPE;
 
-  p->ran_param_val.strct.len       = (sd == 0xFFFFFF) ? 1 : 2;
-  p->ran_param_val.strct.ran_param = calloc(p->ran_param_val.strct.len,
-                                            sizeof(seq_ran_param_t));
-  assert(p->ran_param_val.strct.ran_param);
+  p->ran_param_val.strct = calloc(1, sizeof(ran_param_struct_t));
+  assert(p->ran_param_val.strct != NULL && "Memory exhausted");
+  ran_param_struct_t* strct = p->ran_param_val.strct;
+
+  strct->sz_ran_param_struct = (sd == 0xFFFFFF) ? 1 : 2;
+  strct->ran_param_struct    = calloc(strct->sz_ran_param_struct, sizeof(seq_ran_param_t));
+  assert(strct->ran_param_struct != NULL && "Memory exhausted");
 
   /* SST (22) */
-  seq_ran_param_t* sst_p = &p->ran_param_val.strct.ran_param[0];
-  sst_p->ran_param_id                        = 22;
-  sst_p->ran_param_val.type                  = ELEMENT_KEY_FLAG_FALSE_RAN_PARAMETER_VAL_TYPE;
-  sst_p->ran_param_val.flag_false.type       = OCTET_STRING_RAN_PARAMETER_VAL;
-  sst_p->ran_param_val.flag_false.octet.len  = 1;
-  sst_p->ran_param_val.flag_false.octet.buf  = malloc(1);
-  sst_p->ran_param_val.flag_false.octet.buf[0] = sst;
+  seq_ran_param_t* sst_p     = &strct->ran_param_struct[0];
+  sst_p->ran_param_id        = 22;
+  sst_p->ran_param_val.type  = ELEMENT_KEY_FLAG_FALSE_RAN_PARAMETER_VAL_TYPE;
+  sst_p->ran_param_val.flag_false = calloc(1, sizeof(ran_parameter_value_t));
+  assert(sst_p->ran_param_val.flag_false != NULL && "Memory exhausted");
+  sst_p->ran_param_val.flag_false->type = OCTET_STRING_RAN_PARAMETER_VALUE;
+  sst_p->ran_param_val.flag_false->octet_str_ran.len = 1;
+  sst_p->ran_param_val.flag_false->octet_str_ran.buf = calloc(1, sizeof(uint8_t));
+  assert(sst_p->ran_param_val.flag_false->octet_str_ran.buf != NULL && "Memory exhausted");
+  sst_p->ran_param_val.flag_false->octet_str_ran.buf[0] = sst;
 
-  /* SD (23) — only when configured */
+  /* SD (23), only when configured */
   if (sd != 0xFFFFFF) {
-    seq_ran_param_t* sd_p = &p->ran_param_val.strct.ran_param[1];
-    sd_p->ran_param_id                        = 23;
-    sd_p->ran_param_val.type                  = ELEMENT_KEY_FLAG_FALSE_RAN_PARAMETER_VAL_TYPE;
-    sd_p->ran_param_val.flag_false.type       = OCTET_STRING_RAN_PARAMETER_VAL;
-    sd_p->ran_param_val.flag_false.octet.len  = 3;
-    sd_p->ran_param_val.flag_false.octet.buf  = malloc(3);
-    sd_p->ran_param_val.flag_false.octet.buf[0] = (sd >> 16) & 0xFF;
-    sd_p->ran_param_val.flag_false.octet.buf[1] = (sd >>  8) & 0xFF;
-    sd_p->ran_param_val.flag_false.octet.buf[2] =  sd        & 0xFF;
+    seq_ran_param_t* sd_p     = &strct->ran_param_struct[1];
+    sd_p->ran_param_id        = 23;
+    sd_p->ran_param_val.type  = ELEMENT_KEY_FLAG_FALSE_RAN_PARAMETER_VAL_TYPE;
+    sd_p->ran_param_val.flag_false = calloc(1, sizeof(ran_parameter_value_t));
+    assert(sd_p->ran_param_val.flag_false != NULL && "Memory exhausted");
+    sd_p->ran_param_val.flag_false->type = OCTET_STRING_RAN_PARAMETER_VALUE;
+    sd_p->ran_param_val.flag_false->octet_str_ran.len = 3;
+    sd_p->ran_param_val.flag_false->octet_str_ran.buf = calloc(3, sizeof(uint8_t));
+    assert(sd_p->ran_param_val.flag_false->octet_str_ran.buf != NULL && "Memory exhausted");
+    sd_p->ran_param_val.flag_false->octet_str_ran.buf[0] = (sd >> 16) & 0xFF;
+    sd_p->ran_param_val.flag_false->octet_str_ran.buf[1] = (sd >>  8) & 0xFF;
+    sd_p->ran_param_val.flag_false->octet_str_ran.buf[2] =  sd        & 0xFF;
   }
+
   return req;
 }
 
-static void trigger_cuup_steer(e2_node_connected_xapp_t* node,
-                               const xapp_params_t* p, uint16_t rnti)
+static void trigger_rc_handover(e2_node_connected_xapp_t* node,
+                                const xapp_params_t* p, uint64_t rrc_ue_id)
 {
-  rc_ctrl_req_data_t rc = build_rc_cuup_steer(rnti, p->sst, p->sd);
-  printf("[RC] E2SM-RC Style2 → CUUP steer rnti=0x%04X sst=%u sd=0x%06X\n",
-         rnti, p->sst, p->sd);
+  rc_ctrl_req_data_t rc = build_rc_handover(rrc_ue_id, p->sst, p->sd);
+  printf("[RC] E2SM-RC Style 3 Action 1 → rrc_ue_id=%lu sst=%u sd=0x%06X\n",
+         (unsigned long)rrc_ue_id, p->sst, p->sd);
+  printf("[RC] NOTE: carries S-NSSAI, not Target Primary Cell ID -- the agent\n");
+  printf("[RC]       will report the missing parameter and do nothing.\n");
   control_sm_xapp_api(&node->id, SM_RC_ID, &rc);
-  free_rc_ctrl_req_data(&rc);   /* verify the exact name in your FlexRIC build */
+  free_rc_ctrl_req_data(&rc);
 }
-
-// end of RC control
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * Argument parsing
