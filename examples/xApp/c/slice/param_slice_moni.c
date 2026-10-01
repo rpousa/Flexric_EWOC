@@ -99,6 +99,9 @@ typedef struct {
 static _Atomic uint16_t g_observed_rnti  = 0;  /* RNTI from indication        */
 static _Atomic bool     g_dst_exists     = false; /* dst slice already present */
 static _Atomic bool     g_indication_rdy = false; /* first indication done     */
+/* report_sm_xapp_api()'s void* is the subscription period, not user data, and
+ * sm_cb takes no context -- so the callback reads the parameters from here. */
+static const xapp_params_t* g_params = NULL;
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * Helpers
@@ -145,15 +148,14 @@ static bool slice_id_exists_in_dl(const slice_ind_msg_t* msg, uint32_t id)
 /* ─────────────────────────────────────────────────────────────────────────────
  * Indication callback
  * ───────────────────────────────────────────────────────────────────────────*/
-typedef struct { const xapp_params_t* p; } cb_ctx_t;
-
-static void sm_cb_slice(sm_ag_if_rd_t const* rd, void* ctx_v)
+static void sm_cb_slice(sm_ag_if_rd_t const* rd)
 {
   assert(rd != NULL);
   assert(rd->type     == INDICATION_MSG_AGENT_IF_ANS_V0);
   assert(rd->ind.type == SLICE_STATS_V0);
 
-  const xapp_params_t*   p   = ((cb_ctx_t*)ctx_v)->p;
+  const xapp_params_t*   p   = g_params;
+  assert(p != NULL);
   const slice_ind_msg_t* msg = &rd->ind.slice.msg;
 
   printf("[IND] latency=%ld μs  dl_slices=%u  ues=%u\n",
@@ -557,7 +559,7 @@ int main(int argc, char* argv[])
 
   sm_ans_xapp_t* handles = calloc(nodes.len, sizeof(sm_ans_xapp_t));
   assert(handles);
-  cb_ctx_t cb_ctx = { .p = &params };
+  g_params = &params;
   int controlled = 0;
 
   for (size_t i = 0; i < nodes.len; ++i) {
