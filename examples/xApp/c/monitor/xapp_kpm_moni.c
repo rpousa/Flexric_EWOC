@@ -178,13 +178,27 @@ void log_real_value(const char *name_str, const label_info_lst_t label_info, con
   printf("%s = %.2f %s\n", name_str, meas_record.real_val, name_unit);
 }
 
+// A record may legitimately carry no value (E2SM-KPM MeasurementRecordItem
+// "noValue"): OAI's DU reports NO_VALUE e.g. for a distribution counter asked
+// for without, or with an out-of-range, bin label.  The table used to hold NULL
+// here, so the first such record made the indication thread call address 0
+// (SIGSEGV, "segfault at 0 ip 0" in dmesg).  The DB writer already stores these
+// as SQL NULL; just say so in the log.
+static
+void log_no_value(const char *name_str, const label_info_lst_t label_info, const meas_record_lst_t meas_record)
+{
+  (void)label_info;
+  (void)meas_record;
+  printf("%s = <no value>\n", name_str);
+}
+
 typedef void (*log_meas_value)(const char *name_str, const label_info_lst_t label_info, const meas_record_lst_t meas_record);
 
 static
 log_meas_value get_meas_value[END_MEAS_VALUE] = {
     log_int_value,
     log_real_value,
-    NULL,
+    log_no_value,
 };
 
 static
@@ -245,7 +259,12 @@ void log_kpm_ind_msg_frm_3(kpm_ind_msg_format_3_t const* msg)
     // log UE ID
     ue_id_e2sm_t const ue_id_e2sm = msg->meas_report_per_ue[i].ue_meas_report_lst;
     ue_id_e2sm_e const type = ue_id_e2sm.type;
-    log_ue_id_e2sm[type](ue_id_e2sm);
+    // Same hazard as get_meas_value: only gNB, gNB-DU and gNB-CU-UP UE IDs
+    // have a logger, the other slots are NULL.
+    if (type < END_UE_ID_E2SM && log_ue_id_e2sm[type] != NULL)
+      log_ue_id_e2sm[type](ue_id_e2sm);
+    else
+      printf("UE ID type %d (no logger)\n", (int)type);
 
     // log measurements
     log_kpm_measurements(&msg->meas_report_per_ue[i].ind_msg_format_1);
