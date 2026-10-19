@@ -26,6 +26,8 @@
 #include "../../../../src/util/alg_ds/ds/lock_guard/lock_guard.h"
 #include "../../../../src/util/alg_ds/ds/assoc_container/assoc_generic.h"
 #include "../../../../src/util/e.h"
+#include "../../../../src/xApp/db/sqlite3/sqlite3.h"
+#include <inttypes.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -305,6 +307,116 @@ void sm_cb_kpm(sm_ag_if_rd_t const* rd)
     counter++;
   }
 }
+
+/* ---- UE -> S-NSSAI map for the dashboards ------------------------------
+ *
+ * KPM_MeasRecord says nothing about slices, but every Style 4 subscription
+ * here matches UEs on one S-NSSAI (WATCH_NSSAI[k]), so a UE seen on
+ * subscription k is on slice k. Record that in UE_SLICE_MAP, in the same DB,
+ * keyed by ran_ue_id formatted exactly as the FlexRIC DB writer formats it
+ * (%lx), so Grafana can LEFT JOIN it and name the slice in the legend.
+ * Written only when a UE's slice changes, through a separate connection with
+ * a busy timeout, so it never competes with the KPM writer for long. */
+
+static sqlite3* slice_db = NULL;
+static pthread_mutex_t slice_mtx = PTHREAD_MUTEX_INITIALIZER;
+#define SLICE_MAP_MAX 1024
+static int8_t slice_of_ue[SLICE_MAP_MAX]; // WATCH_NSSAI index + 1, 0 = unknown
+
+static const char* sst_name(uint8_t sst)
+{
+  switch (sst) { // TS 23.501 5.15.2.2 standardised SST values
+    case 1: return "eMBB";
+    case 2: return "URLLC";
+    case 3: return "MIoT";
+    case 4: return "V2X";
+    case 5: return "HMTC";
+    default: return "SST";
+  }
+}
+
+static void open_slice_map(fr_args_t const* args)
+{
+  char const* dir = get_conf_db_dir(args);
+  char const* name = get_conf_db_name(args);
+  if (dir == NULL || name == NULL || strlen(dir) == 0 || strlen(name) == 0) {
+    printf("[KPM]: no fixed DB name (-d/-n), UE_SLICE_MAP not written\n");
+    return;
+  }
+  char path[512];
+  snprintf(path, sizeof(path), "%s%s", dir, name);
+  if (sqlite3_open(path, &slice_db) != SQLITE_OK) {
+    printf("[KPM]: cannot open %s for UE_SLICE_MAP: %s\n", path, sqlite3_errmsg(slice_db));
+    sqlite3_close(slice_db);
+    slice_db = NULL;
+    return;
+  }
+  sqlite3_busy_timeout(slice_db, 2000);
+  char* err = NULL;
+  const char* sql = "CREATE TABLE IF NOT EXISTS UE_SLICE_MAP(ran_ue_id TEXT PRIMARY KEY, sst INT, sd INT, slice TEXT, tstamp INT);"
+                    "DELETE FROM UE_SLICE_MAP;"; // rrc_ue_ids are reused across runs
+  if (sqlite3_exec(slice_db, sql, NULL, NULL, &err) != SQLITE_OK) {
+    printf("[KPM]: UE_SLICE_MAP not created: %s\n", err);
+    sqlite3_free(err);
+  }
+}
+
+static void note_ue_slice(ue_id_e2sm_t const* id, size_t k)
+{
+  uint64_t const* ran_ue_id = NULL;
+  switch (id->type) {
+    case GNB_UE_ID_E2SM: ran_ue_id = id->gnb.ran_ue_id; break;
+    case GNB_DU_UE_ID_E2SM: ran_ue_id = id->gnb_du.ran_ue_id; break;
+    case GNB_CU_UP_UE_ID_E2SM: ran_ue_id = id->gnb_cu_up.ran_ue_id; break;
+    default: break;
+  }
+  if (ran_ue_id == NULL || slice_db == NULL || k >= WATCH_NSSAI_LEN)
+    return;
+
+  pthread_mutex_lock(&slice_mtx);
+  const bool known = *ran_ue_id < SLICE_MAP_MAX && slice_of_ue[*ran_ue_id] == (int8_t)(k + 1);
+  if (!known) {
+    char sql[320];
+    snprintf(sql, sizeof(sql),
+             "INSERT OR REPLACE INTO UE_SLICE_MAP(ran_ue_id, sst, sd, slice, tstamp) VALUES('%" PRIx64 "', %u, %u, '%s (SST %u)', %" PRId64 ");",
+             *ran_ue_id, WATCH_NSSAI[k].sst, WATCH_NSSAI[k].sd, sst_name(WATCH_NSSAI[k].sst), WATCH_NSSAI[k].sst, time_now_us() / 1000000);
+    char* err = NULL;
+    if (sqlite3_exec(slice_db, sql, NULL, NULL, &err) == SQLITE_OK) {
+      if (*ran_ue_id < SLICE_MAP_MAX)
+        slice_of_ue[*ran_ue_id] = (int8_t)(k + 1);
+      printf("[KPM]: UE ran_ue_id %" PRIx64 " is on S-NSSAI (%u, %u) %s\n", *ran_ue_id, WATCH_NSSAI[k].sst, WATCH_NSSAI[k].sd, sst_name(WATCH_NSSAI[k].sst));
+    } else {
+      printf("[KPM]: UE_SLICE_MAP write failed: %s\n", err); // retried on the next report
+      sqlite3_free(err);
+    }
+  }
+  pthread_mutex_unlock(&slice_mtx);
+}
+
+static void sm_cb_kpm_nssai(sm_ag_if_rd_t const* rd, size_t k)
+{
+  if (rd->type == INDICATION_MSG_AGENT_IF_ANS_V0 && rd->ind.type == KPM_STATS_V3_0
+      && rd->ind.kpm.ind.msg.type == FORMAT_3_INDICATION_MESSAGE) {
+    kpm_ind_msg_format_3_t const* m = &rd->ind.kpm.ind.msg.frm_3;
+    for (size_t i = 0; i < m->ue_meas_report_lst_len; i++)
+      note_ue_slice(&m->meas_report_per_ue[i].ue_meas_report_lst, k);
+  }
+  sm_cb_kpm(rd);
+}
+
+/* One callback per watched S-NSSAI: sm_cb carries no user context. */
+static void sm_cb_kpm_nssai_0(sm_ag_if_rd_t const* rd) { sm_cb_kpm_nssai(rd, 0); }
+static void sm_cb_kpm_nssai_1(sm_ag_if_rd_t const* rd) { sm_cb_kpm_nssai(rd, 1); }
+static void sm_cb_kpm_nssai_2(sm_ag_if_rd_t const* rd) { sm_cb_kpm_nssai(rd, 2); }
+static void sm_cb_kpm_nssai_3(sm_ag_if_rd_t const* rd) { sm_cb_kpm_nssai(rd, 3); }
+static void sm_cb_kpm_nssai_4(sm_ag_if_rd_t const* rd) { sm_cb_kpm_nssai(rd, 4); }
+static void sm_cb_kpm_nssai_5(sm_ag_if_rd_t const* rd) { sm_cb_kpm_nssai(rd, 5); }
+static void sm_cb_kpm_nssai_6(sm_ag_if_rd_t const* rd) { sm_cb_kpm_nssai(rd, 6); }
+static void sm_cb_kpm_nssai_7(sm_ag_if_rd_t const* rd) { sm_cb_kpm_nssai(rd, 7); }
+static sm_cb const sm_cb_by_nssai[] = {sm_cb_kpm_nssai_0, sm_cb_kpm_nssai_1, sm_cb_kpm_nssai_2, sm_cb_kpm_nssai_3,
+                                       sm_cb_kpm_nssai_4, sm_cb_kpm_nssai_5, sm_cb_kpm_nssai_6, sm_cb_kpm_nssai_7};
+_Static_assert(sizeof(WATCH_NSSAI) / sizeof(WATCH_NSSAI[0]) <= sizeof(sm_cb_by_nssai) / sizeof(sm_cb_by_nssai[0]),
+               "add callbacks: more watched S-NSSAIs than sm_cb_kpm_nssai_N");
 
 // static
 // test_info_lst_t filter_predicate(test_cond_type_e type, test_cond_e cond, int value)
@@ -648,6 +760,7 @@ int main(int argc, char* argv[])
 
   // Init the xApp
   init_xapp_api(&args);
+  open_slice_map(&args);
   sleep(1);
 
   init_kpm_meas_unit_hash_table();
@@ -694,7 +807,7 @@ int main(int argc, char* argv[])
         kpm_sub_data_t kpm_sub =
             gen_kpm_subs(&n->rf[idx].defn.kpm, report_item,
                          WATCH_NSSAI[k].sst, WATCH_NSSAI[k].sd);
-        hndl[i][h] = report_sm_xapp_api(&n->id, KPM_ran_function, &kpm_sub, sm_cb_kpm);
+        hndl[i][h] = report_sm_xapp_api(&n->id, KPM_ran_function, &kpm_sub, sm_cb_by_nssai[k]);
         assert(hndl[i][h].success == true);
         h++;
         free_kpm_sub_data(&kpm_sub);
