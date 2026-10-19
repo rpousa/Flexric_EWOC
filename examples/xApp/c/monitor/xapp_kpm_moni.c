@@ -287,7 +287,13 @@ void sm_cb_kpm(sm_ag_if_rd_t const* rd)
   {
     lock_guard(&mtx);
 
-    printf("\n%7d KPM ind_msg latency = %ld [μs]\n", counter, now - hdr_frm_1->collectStartTime); // xApp <-> E2 Node
+    // One-way E2 node -> xApp delay. collectStartTime is stamped with the E2
+    // node's clock and "now" with this host's, so the figure is only meaningful
+    // when the hosts' clocks are synchronised (chrony/PTP); a few ms of offset
+    // shows up 1:1 in it. Raw values printed so a nonsense figure can be traced
+    // to whichever side produced it.
+    const int64_t cst = (int64_t)hdr_frm_1->collectStartTime;
+    printf("\n%7d KPM ind_msg latency = %ld [μs] (collectStartTime %ld, now %ld)\n", counter, now - cst, cst, now);
 
     if (ind->msg.type == FORMAT_1_INDICATION_MESSAGE) {
       log_kpm_measurements(&ind->msg.frm_1);
