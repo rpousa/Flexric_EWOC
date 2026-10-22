@@ -167,6 +167,8 @@ void log_int_value(const char *name_str, const label_info_lst_t label_info, cons
   char *name_unit = get_meas_unit(name_str);
   if (label_info.noLabel != NULL) {
     printf("%s = %d %s\n", name_str, meas_record.int_val, name_unit);
+  } else if (label_info.sliceID != NULL) {
+    printf("%s[SST %u] = %d %s\n", name_str, label_info.sliceID->sST, meas_record.int_val, name_unit);
   } else if (label_info.distBinX != NULL && meas_record.int_val > 0) {
     printf("%s[BinX=%d][BinY=%d][BinZ=%d] = %d %s\n", name_str, *label_info.distBinX, *label_info.distBinY, *label_info.distBinZ, meas_record.int_val, name_unit);
   }
@@ -175,9 +177,11 @@ void log_int_value(const char *name_str, const label_info_lst_t label_info, cons
 static
 void log_real_value(const char *name_str, const label_info_lst_t label_info, const meas_record_lst_t meas_record)
 {
-  (void)label_info;
   char *name_unit = get_meas_unit(name_str);
-  printf("%s = %.2f %s\n", name_str, meas_record.real_val, name_unit);
+  if (label_info.sliceID != NULL)
+    printf("%s[SST %u] = %.2f %s\n", name_str, label_info.sliceID->sST, meas_record.real_val, name_unit);
+  else
+    printf("%s = %.2f %s\n", name_str, meas_record.real_val, name_unit);
 }
 
 // A record may legitimately carry no value (E2SM-KPM MeasurementRecordItem
@@ -310,9 +314,11 @@ void sm_cb_kpm(sm_ag_if_rd_t const* rd)
 
 /* ---- UE -> S-NSSAI map for the dashboards ------------------------------
  *
- * KPM_MeasRecord says nothing about slices, but every Style 4 subscription
- * here matches UEs on one S-NSSAI (WATCH_NSSAI[k]), so a UE seen on
- * subscription k is on slice k. Record that in UE_SLICE_MAP, in the same DB,
+ * KPM_MeasRecord now carries each record's slice (sst/sd, from the sliceID
+ * label). UE_SLICE_MAP is kept as the list of slices each UE is on: every
+ * Style 4 subscription here matches UEs on one S-NSSAI (WATCH_NSSAI[k]), so a
+ * UE seen on subscription k has a PDU session on slice k -- one row per
+ * (UE, slice), since one UE can carry several slices. In the same DB,
  * keyed by ran_ue_id formatted exactly as the FlexRIC DB writer formats it
  * (%lx), so Grafana can LEFT JOIN it and name the slice in the legend.
  * Written only when a UE's slice changes, through a separate connection with
@@ -321,7 +327,7 @@ void sm_cb_kpm(sm_ag_if_rd_t const* rd)
 static sqlite3* slice_db = NULL;
 static pthread_mutex_t slice_mtx = PTHREAD_MUTEX_INITIALIZER;
 #define SLICE_MAP_MAX 1024
-static int8_t slice_of_ue[SLICE_MAP_MAX]; // WATCH_NSSAI index + 1, 0 = unknown
+static uint8_t slices_of_ue[SLICE_MAP_MAX]; // bit k = UE seen on WATCH_NSSAI[k]
 
 static const char* sst_name(uint8_t sst)
 {
@@ -353,7 +359,7 @@ static void open_slice_map(fr_args_t const* args)
   }
   sqlite3_busy_timeout(slice_db, 2000);
   char* err = NULL;
-  const char* sql = "CREATE TABLE IF NOT EXISTS UE_SLICE_MAP(ran_ue_id TEXT PRIMARY KEY, sst INT, sd INT, slice TEXT, tstamp INT);"
+  const char* sql = "CREATE TABLE IF NOT EXISTS UE_SLICE_MAP(ran_ue_id TEXT, sst INT, sd INT, slice TEXT, tstamp INT, PRIMARY KEY(ran_ue_id, sst, sd));"
                     "DELETE FROM UE_SLICE_MAP;"; // rrc_ue_ids are reused across runs
   if (sqlite3_exec(slice_db, sql, NULL, NULL, &err) != SQLITE_OK) {
     printf("[KPM]: UE_SLICE_MAP not created: %s\n", err);
@@ -374,7 +380,7 @@ static void note_ue_slice(ue_id_e2sm_t const* id, size_t k)
     return;
 
   pthread_mutex_lock(&slice_mtx);
-  const bool known = *ran_ue_id < SLICE_MAP_MAX && slice_of_ue[*ran_ue_id] == (int8_t)(k + 1);
+  const bool known = *ran_ue_id < SLICE_MAP_MAX && (slices_of_ue[*ran_ue_id] & (1u << k));
   if (!known) {
     char sql[320];
     snprintf(sql, sizeof(sql),
@@ -383,7 +389,7 @@ static void note_ue_slice(ue_id_e2sm_t const* id, size_t k)
     char* err = NULL;
     if (sqlite3_exec(slice_db, sql, NULL, NULL, &err) == SQLITE_OK) {
       if (*ran_ue_id < SLICE_MAP_MAX)
-        slice_of_ue[*ran_ue_id] = (int8_t)(k + 1);
+        slices_of_ue[*ran_ue_id] |= (uint8_t)(1u << k);
       printf("[KPM]: UE ran_ue_id %" PRIx64 " is on S-NSSAI (%u, %u) %s\n", *ran_ue_id, WATCH_NSSAI[k].sst, WATCH_NSSAI[k].sd, sst_name(WATCH_NSSAI[k].sst));
     } else {
       printf("[KPM]: UE_SLICE_MAP write failed: %s\n", err); // retried on the next report
@@ -481,6 +487,23 @@ test_info_lst_t filter_predicate(test_cond_type_e type, test_cond_e cond,
 }
 
 
+/* Style 4 measurements carry the subscription's S-NSSAI as sliceID label
+ * (E2SM-KPM 8.3.11, TS 28.552 per-S-NSSAI measurement): the RAN reports the
+ * UE's DRB on that slice, and the DB stores it in KPM_MeasRecord.sst/sd, so a
+ * UE with one PDU session per slice gets one series per slice. */
+static
+label_info_lst_t fill_kpm_slice_label(uint8_t sst, uint32_t sd)
+{
+  label_info_lst_t label_item = {0};
+
+  label_item.sliceID = ecalloc(1, sizeof(*label_item.sliceID));
+  label_item.sliceID->sST = sst;
+  label_item.sliceID->sD = ecalloc(1, sizeof(uint32_t));
+  *label_item.sliceID->sD = sd;
+
+  return label_item;
+}
+
 static
 label_info_lst_t fill_kpm_label(void)
 {
@@ -493,7 +516,7 @@ label_info_lst_t fill_kpm_label(void)
 }
 
 static
-kpm_act_def_format_1_t fill_act_def_frm_1(ric_report_style_item_t const* report_item)
+kpm_act_def_format_1_t fill_act_def_frm_1(ric_report_style_item_t const* report_item, uint8_t sst, uint32_t sd)
 {
   assert(report_item != NULL);
 
@@ -517,7 +540,7 @@ kpm_act_def_format_1_t fill_act_def_frm_1(ric_report_style_item_t const* report_
     // 8.3.11
     meas_item->label_info_lst_len = 1;
     meas_item->label_info_lst = ecalloc(1, sizeof(label_info_lst_t));
-    meas_item->label_info_lst[0] = fill_kpm_label();
+    meas_item->label_info_lst[0] = fill_kpm_slice_label(sst, sd);
   }
 
   // 8.3.8 [0, 4294967295]
@@ -581,7 +604,7 @@ kpm_act_def_t fill_report_style_4(ric_report_style_item_t const* report_item,
   test_cond_e const condition = EQUAL_TEST_COND;     // EQUAL, not GREATERTHAN
   act_def.frm_4.matching_cond_lst[0].test_info_lst = filter_predicate(type, condition, sst, sd);
 
-  act_def.frm_4.action_def_format_1 = fill_act_def_frm_1(report_item);
+  act_def.frm_4.action_def_format_1 = fill_act_def_frm_1(report_item, sst, sd);
   return act_def;
 }
 

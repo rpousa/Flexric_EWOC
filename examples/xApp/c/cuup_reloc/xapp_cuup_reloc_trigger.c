@@ -111,9 +111,13 @@ typedef struct {
 static cfg_t cfg;
 
 static pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
+/* One entry per (UE, slice): a UE with a PDU session per slice is reported
+ * on each slice's DRB, and the rule is evaluated per DRB. The CONTROL still
+ * names the UE: a gNB-CU-UP change moves all of its sessions together. */
 static struct {
   bool used;
   uint32_t rrc_ue_id;
+  uint8_t sst; // 0 = report without a sliceID label
   int streak; // consecutive primary reports satisfying the rule
   double guard_val;
   int64_t guard_at_us; // 0 = never seen
@@ -186,11 +190,11 @@ static bool rrc_ue_id_of(ue_id_e2sm_t const* id, uint32_t* out)
   }
 }
 
-static int ue_slot(uint32_t rrc_ue_id) // with mtx held
+static int ue_slot(uint32_t rrc_ue_id, uint8_t sst) // with mtx held
 {
   int free_slot = -1;
   for (int i = 0; i < MAX_UES; i++) {
-    if (ues[i].used && ues[i].rrc_ue_id == rrc_ue_id)
+    if (ues[i].used && ues[i].rrc_ue_id == rrc_ue_id && ues[i].sst == sst)
       return i;
     if (free_slot < 0 && !ues[i].used)
       free_slot = i;
@@ -199,18 +203,19 @@ static int ue_slot(uint32_t rrc_ue_id) // with mtx held
     memset(&ues[free_slot], 0, sizeof(ues[free_slot]));
     ues[free_slot].used = true;
     ues[free_slot].rrc_ue_id = rrc_ue_id;
+    ues[free_slot].sst = sst;
   }
   return free_slot;
 }
 
-static void on_value(uint32_t rrc_ue_id, bool is_guard, double v)
+static void on_value(uint32_t rrc_ue_id, uint8_t sst, bool is_guard, double v)
 {
   if (cfg.only_ue != 0 && rrc_ue_id != cfg.only_ue)
     return;
 
   const int64_t now = time_now_us();
   pthread_mutex_lock(&mtx);
-  const int s = ue_slot(rrc_ue_id);
+  const int s = ue_slot(rrc_ue_id, sst);
   if (s < 0) {
     pthread_mutex_unlock(&mtx);
     return;
@@ -233,8 +238,9 @@ static void on_value(uint32_t rrc_ue_id, bool is_guard, double v)
   ues[s].streak = (ok && guard_ok) ? ues[s].streak + 1 : 0;
 
   if (cfg.guard != NULL)
-    printf("[RELOC] UE %u %s = %.3f (%s), %s = %.3f (%s) -> %d/%d%s\n",
+    printf("[RELOC] UE %u SST %u %s = %.3f (%s), %s = %.3f (%s) -> %d/%d%s\n",
            rrc_ue_id,
+           sst,
            cfg.metric,
            v,
            ok ? "over the line" : "fine",
@@ -245,8 +251,9 @@ static void on_value(uint32_t rrc_ue_id, bool is_guard, double v)
            cfg.consecutive,
            fired ? " [after trigger]" : "");
   else
-    printf("[RELOC] UE %u %s = %.3f -> %d/%d%s\n",
+    printf("[RELOC] UE %u SST %u %s = %.3f -> %d/%d%s\n",
            rrc_ue_id,
+           sst,
            cfg.metric,
            v,
            ues[s].streak,
@@ -308,8 +315,10 @@ static void sm_cb_kpm(sm_ag_if_rd_t const* rd)
         if (t->type != NAME_MEAS_TYPE || cmp_str_ba(name, t->name) != 0)
           continue;
         double v;
+        label_info_lst_t const* lbl = m->meas_info_lst[k].label_info_lst_len > 0 ? &m->meas_info_lst[k].label_info_lst[0] : NULL;
+        const uint8_t sst = (lbl != NULL && lbl->sliceID != NULL) ? lbl->sliceID->sST : 0;
         if (record_value(&data->meas_record_lst[k], &v))
-          on_value(rrc_ue_id, want_guard, v);
+          on_value(rrc_ue_id, sst, want_guard, v);
       }
     }
   }
@@ -409,16 +418,21 @@ static test_info_lst_t nssai_predicate(uint8_t sst, uint32_t sd)
   return dst;
 }
 
-static void fill_meas(meas_info_format_1_lst_t* m, const char* name)
+/* Label = the subscription's S-NSSAI (sliceID): the RAN reports the UE's DRB
+ * on that slice, and the callback knows which slice a value is for. */
+static void fill_meas(meas_info_format_1_lst_t* m, const char* name, snssai_t nssai)
 {
   m->meas_type.type = NAME_MEAS_TYPE;
   m->meas_type.name = cp_str_to_ba(name);
   m->label_info_lst_len = 1;
   m->label_info_lst = calloc(1, sizeof(label_info_lst_t));
   assert(m->label_info_lst != NULL && "Memory exhausted");
-  m->label_info_lst[0].noLabel = calloc(1, sizeof(enum_value_e));
-  assert(m->label_info_lst[0].noLabel != NULL && "Memory exhausted");
-  *m->label_info_lst[0].noLabel = TRUE_ENUM_VALUE;
+  m->label_info_lst[0].sliceID = calloc(1, sizeof(*m->label_info_lst[0].sliceID));
+  assert(m->label_info_lst[0].sliceID != NULL && "Memory exhausted");
+  m->label_info_lst[0].sliceID->sST = nssai.sst;
+  m->label_info_lst[0].sliceID->sD = calloc(1, sizeof(uint32_t));
+  assert(m->label_info_lst[0].sliceID->sD != NULL && "Memory exhausted");
+  *m->label_info_lst[0].sliceID->sD = nssai.sd;
 }
 
 static kpm_sub_data_t gen_sub(snssai_t nssai, const char* const* names, size_t n_names)
@@ -443,7 +457,7 @@ static kpm_sub_data_t gen_sub(snssai_t nssai, const char* const* names, size_t n
   f1->meas_info_lst = calloc(n_names, sizeof(meas_info_format_1_lst_t));
   assert(f1->meas_info_lst != NULL && "Memory exhausted");
   for (size_t i = 0; i < n_names; i++)
-    fill_meas(&f1->meas_info_lst[i], names[i]);
+    fill_meas(&f1->meas_info_lst[i], names[i], nssai);
   f1->gran_period_ms = cfg.period_ms;
   f1->cell_global_id = NULL;
   f1->meas_bin_range_info_lst_len = 0;

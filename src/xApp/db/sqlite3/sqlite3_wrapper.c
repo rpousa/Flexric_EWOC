@@ -300,7 +300,11 @@ void create_kpm_table(sqlite3* db)
                                "binY INT,"
                                "binZ INT,"
                                "measure_value REAL,"
-                               "incompleteFlag TEXT"
+                               "incompleteFlag TEXT,"
+                               // S-NSSAI of the measurement's sliceID label
+                               // (per-slice measurement), NULL without one
+                               "sst INT,"
+                               "sd INT"
                                ");";
 
   create_table(db, sql_kpm_table);
@@ -983,9 +987,17 @@ void to_sql_string_kpm_measRecord(global_e2_node_id_t const* id,
   if (label_info->distBinY) snprintf(bin_y_str, sizeof(bin_y_str), "%u", *label_info->distBinY);
   if (label_info->distBinZ) snprintf(bin_z_str, sizeof(bin_z_str), "%u", *label_info->distBinZ);
 
+  char sst_str[16] = "NULL";
+  char sd_str[16] = "NULL";
+  if (label_info->sliceID != NULL) {
+    snprintf(sst_str, sizeof(sst_str), "%u", label_info->sliceID->sST);
+    if (label_info->sliceID->sD != NULL)
+      snprintf(sd_str, sizeof(sd_str), "%u", *label_info->sliceID->sD);
+  }
+
   int rc = snprintf(out, out_len,
     "INSERT INTO KPM_MeasRecord VALUES("
-    "%lu,'%s',%d,%d,%d,%lu,%u,'%s','%s','%s','%s',%s,%s,%s,'%s','%s');"
+    "%lu,'%s',%d,%d,%d,%lu,%u,'%s','%s','%s','%s',%s,%s,%s,'%s','%s',%s,%s);"
     , tstamp
     , ngran_type
     , id->nb_id.nb_id
@@ -1002,6 +1014,8 @@ void to_sql_string_kpm_measRecord(global_e2_node_id_t const* id,
     , bin_z_str
     , value_str
     , incomplete_flag_str
+    , sst_str
+    , sd_str
   );
   assert(rc > 0 && rc < (int)out_len && "Not enough space in the char array to write all the data");
 }

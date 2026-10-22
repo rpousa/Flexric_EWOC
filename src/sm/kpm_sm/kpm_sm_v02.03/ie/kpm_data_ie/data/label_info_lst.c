@@ -20,7 +20,16 @@ label_info_lst_t cp_label_info(label_info_lst_t const *src)
     *dst.plmn_id = cp_e2sm_plmn( src->plmn_id);
   }
 
-  assert(src->sliceID == NULL && "Not implemented");
+  if (src->sliceID != NULL) {
+    dst.sliceID = calloc(1, sizeof(*dst.sliceID));
+    assert(dst.sliceID != NULL && "Memory exhausted");
+    dst.sliceID->sST = src->sliceID->sST;
+    if (src->sliceID->sD != NULL) {
+      dst.sliceID->sD = calloc(1, sizeof(uint32_t));
+      assert(dst.sliceID->sD != NULL && "Memory exhausted");
+      *dst.sliceID->sD = *src->sliceID->sD;
+    }
+  }
   assert(src->fiveQI == NULL && "Not implemented");
   assert(src->qFI == NULL && "Not implemented");
   assert(src->qCI == NULL && "Not implemented");
